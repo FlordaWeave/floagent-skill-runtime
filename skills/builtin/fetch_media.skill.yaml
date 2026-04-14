@@ -1,0 +1,17 @@
+skill_id: fetch_media
+version: "1.0.0"
+name: fetch_media
+description: Fetch an attachment into the virtual workspace for inspection or processing.
+instruction: |
+  Use this skill when you have access to a `media_id` and need the actual media file contents in the virtual workspace.
+
+  Example payload:
+  - `media_fetch`: `{"media_id":"11111111-1111-1111-1111-111111111111","output_path":"session://imports/input.png"}`
+
+  Important constraints:
+  - `output_path` must be a VFS path such as `session://imports/file.png`, another `session://...` path, `task://...`, or a task-relative path.
+  - Prefer `session://imports/...` for downloaded attachments unless you have a better task-specific destination.
+  - After fetching, read or process the file from the VFS path you wrote to.
+  - Do not claim you inspected the file contents unless you fetched it successfully or already had it available in VFS.
+tools:
+  - media_fetch

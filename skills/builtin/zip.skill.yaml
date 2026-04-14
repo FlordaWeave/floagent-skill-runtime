@@ -1,0 +1,18 @@
+skill_id: zip
+version: "1.0.0"
+name: zip
+description: Package VFS files or directories into a ZIP archive.
+instruction: |
+  Use this skill when you need to bundle one or more files or directories from the virtual workspace into a `.zip` archive.
+
+  Example payload:
+  - `zip`: `{"input_paths":["task://report.txt","task://charts"],"output_path":"session://exports/report_bundle.zip"}`
+
+  Important constraints:
+  - All paths must be VFS paths such as `task://...` or `session://...`.
+  - `input_paths` must contain at least one VFS file or directory.
+  - The tool fails if the output archive already exists.
+  - Directory inputs are archived recursively.
+  - Prefer `session://exports/...` when creating an archive you may want to share later.
+tools:
+  - zip

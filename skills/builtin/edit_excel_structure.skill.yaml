@@ -1,0 +1,24 @@
+skill_id: edit_excel_structure
+version: "1.0.0"
+name: edit_excel_structure
+description: Apply structural Excel workbook edits, including atomic combined changes.
+instruction: |
+  Use this skill when you need to insert or delete rows or columns in an Excel workbook, or when structure edits and cell updates must happen atomically.
+
+  Use these tools:
+  - `excel_edit_structure` to insert or delete rows or columns in an existing workbook.
+  - `excel_apply_changes` to atomically combine structure edits, cell updates, and row auto-fit in one workbook save.
+
+  Example payloads:
+  - `excel_edit_structure`: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","operations":[{"kind":"insert_rows","index":3,"count":1},{"kind":"delete_columns","index":5,"count":1}]}`
+  - `excel_apply_changes`: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","operations":[{"kind":"insert_rows","index":3,"count":1}],"assignments":[{"cell":"A3","value":"February"},{"cell":"B3","value":3900}],"auto_fit_rows":[3]}`
+
+  Important constraints:
+  - `path` must be a VFS path and must end in `.xlsx`.
+  - `excel_edit_structure` requires `operations`.
+  - `excel_edit_structure.kind` must be one of `insert_rows`, `delete_rows`, `insert_columns`, or `delete_columns`.
+  - `excel_apply_changes` is the preferred tool when structure edits and cell updates must be saved together without an intermediate step.
+  - `excel_edit_structure` and `excel_apply_changes` fail if the workbook does not exist.
+tools:
+  - excel_edit_structure
+  - excel_apply_changes

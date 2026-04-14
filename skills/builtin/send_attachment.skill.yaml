@@ -1,0 +1,23 @@
+skill_id: send_attachment
+version: "1.0.0"
+name: send_attachment
+description: Send an attachment to the user.
+instruction: |
+  Use this skill when the user wants you to send a file back to the current channel.
+
+  Follow this flow exactly:
+  1. If you already have the file in the virtual workspace, call `media_push_vfs` first.
+  2. Then call `send_media_attachment` with the returned `media_id`. You may also pass `filename` to control the attachment name shown to the user.
+
+  Example payloads:
+  - `media_push_vfs`: `{"input_path":"task://artifacts/report.csv","filename":"custom-report.csv","ttl_seconds":3600}`
+  - `send_media_attachment`: `{"media_id":"11111111-1111-1111-1111-111111111111","filename":"report.csv"}`
+
+  Important constraints:
+  - Do not call `send_media_attachment` until you have a valid `media_id`.
+  - `send_media_attachment` only accepts `media_id` and optional `filename`.
+  - If `send_media_attachment` returns `send_as_attachment=true`, the runtime will send the file as an attachment.
+  - If it returns `send_as_attachment=false`, the file was too large to attach. In that case, do not claim an attachment was sent; instead, tell the user you are sharing a download link and include the returned `download_url`.
+tools:
+  - media_push_vfs
+  - send_media_attachment

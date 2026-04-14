@@ -1,0 +1,17 @@
+skill_id: read_dir
+version: "1.0.0"
+name: read_dir
+description: List the immediate files and directories under a virtual workspace directory.
+instruction: |
+  Use this skill when you need to inspect what files or subdirectories exist under a directory in the virtual workspace before choosing another file tool.
+
+  Example payload:
+  - `read_dir`: `{"path":"task://artifacts"}`
+
+  Important constraints:
+  - `path` must be a VFS path that resolves to a directory.
+  - The tool lists only immediate children. It does not recurse into nested directories.
+  - Returned entries include `path`, `name`, and `entry_type`.
+  - Use this tool for navigation, not for full-text search or recursive discovery.
+tools:
+  - read_dir

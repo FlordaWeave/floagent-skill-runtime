@@ -1,0 +1,18 @@
+skill_id: unzip
+version: "1.0.0"
+name: unzip
+description: Extract a ZIP archive from VFS into a VFS directory.
+instruction: |
+  Use this skill when you need to extract an existing `.zip` file from the virtual workspace into an explicit destination directory in the virtual workspace.
+
+  Example payload:
+  - `unzip`: `{"input_path":"session://imports/source.zip","output_dir":"task://unzipped/source"}`
+
+  Important constraints:
+  - All paths must be VFS paths such as `task://...` or `session://...`.
+  - `input_path` must point to a ZIP file in the virtual workspace.
+  - `output_dir` is required and extraction fails if any entry would overwrite an existing file.
+  - ZIP extraction rejects unsafe archive entries that are absolute or try to escape the destination directory.
+  - Prefer `session://imports/...` or a task-local directory for extracted inputs.
+tools:
+  - unzip

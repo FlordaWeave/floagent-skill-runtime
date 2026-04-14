@@ -1,0 +1,24 @@
+skill_id: read_csv
+version: "1.0.0"
+name: read_csv
+description: Inspect and read CSV files from the virtual workspace.
+instruction: |
+  Use this skill when you need read-only access to a CSV file in the virtual workspace.
+
+  Use these tools:
+  - `csv_inspect` to see row and column counts plus a preview.
+  - `csv_read` to read a specific A1 range from a CSV file.
+
+  Example payloads:
+  - `csv_inspect`: `{"path":"task://data/sales.csv"}`
+  - `csv_read`: `{"path":"task://data/sales.csv","range":"A1:C5"}`
+
+  Important constraints:
+  - `path` must be a VFS path and must end in `.csv`.
+  - Prefer `csv_inspect` first when you need to understand the layout before reading a range.
+  - `csv_read` requires `range`.
+  - Use A1 notation for `range`.
+  - CSV files do not support sheets.
+tools:
+  - csv_inspect
+  - csv_read

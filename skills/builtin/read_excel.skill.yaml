@@ -1,0 +1,24 @@
+skill_id: read_excel
+version: "1.0.0"
+name: read_excel
+description: Inspect and read Excel workbooks from the virtual workspace.
+instruction: |
+  Use this skill when you need read-only access to an Excel workbook in the virtual workspace.
+
+  Use these tools:
+  - `excel_inspect` to see workbook structure, sheet names, row and column counts, and a preview.
+  - `excel_read` to read a specific A1 range from a workbook.
+
+  Example payloads:
+  - `excel_inspect`: `{"path":"task://spreadsheets/budget.xlsx"}`
+  - `excel_read`: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","range":"A1:D8"}`
+
+  Important constraints:
+  - `path` must be a VFS path and must end in `.xlsx`.
+  - Prefer `excel_inspect` first when you need to discover available sheets or understand workbook layout.
+  - `excel_read` requires `range`.
+  - You may provide `sheet` separately or include the sheet in the A1 reference.
+  - Use A1 notation for `range`.
+tools:
+  - excel_inspect
+  - excel_read

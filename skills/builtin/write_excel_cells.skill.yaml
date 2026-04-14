@@ -1,0 +1,28 @@
+skill_id: write_excel_cells
+version: "1.0.0"
+name: write_excel_cells
+description: Create Excel workbooks, edit cell values, and auto-fit rows.
+instruction: |
+  Use this skill when you need non-structural edits to an Excel workbook in the virtual workspace.
+
+  Use these tools:
+  - `excel_create` to create a new workbook with initial cell values.
+  - `excel_edit_cells` to update one or more cells in an existing workbook.
+  - `excel_auto_fit_row` to increase a row height so wrapped content is visible.
+
+  Example payloads:
+  - `excel_create`: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","assignments":[{"cell":"A1","value":"Month"},{"cell":"B1","value":"Spend"},{"cell":"A2","value":"January"},{"cell":"B2","value":4200}]}`
+  - `excel_edit_cells`: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","assignments":[{"cell":"B2","value":4500},{"cell":"C2","value":"forecast"}]}`
+  - `excel_auto_fit_row`: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","row":4}`
+
+  Important constraints:
+  - `path` must be a VFS path and must end in `.xlsx`.
+  - `excel_create` and `excel_edit_cells` require `assignments`, where each assignment has `cell` and optional `value`.
+  - Use A1 notation for `assignments[].cell`.
+  - `excel_create` fails if the workbook already exists.
+  - `excel_edit_cells` fails if the workbook does not exist.
+  - `excel_auto_fit_row` adjusts row height only; it does not insert or delete rows or columns.
+tools:
+  - excel_create
+  - excel_edit_cells
+  - excel_auto_fit_row

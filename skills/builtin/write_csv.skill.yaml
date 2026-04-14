@@ -1,0 +1,25 @@
+skill_id: write_csv
+version: "1.0.0"
+name: write_csv
+description: Create and edit CSV files in the virtual workspace.
+instruction: |
+  Use this skill when you need to create a CSV file or update cell values in an existing CSV file.
+
+  Use these tools:
+  - `csv_create` to create a new `.csv` file with initial cell values.
+  - `csv_edit_cells` to update one or more cells in an existing `.csv` file.
+
+  Example payloads:
+  - `csv_create`: `{"path":"task://data/sales.csv","assignments":[{"cell":"A1","value":"Quarter"},{"cell":"B1","value":"Revenue"},{"cell":"A2","value":"Q1"},{"cell":"B2","value":12500}]}`
+  - `csv_edit_cells`: `{"path":"task://data/sales.csv","assignments":[{"cell":"B2","value":12800},{"cell":"C2","value":"updated"}]}`
+
+  Important constraints:
+  - `path` must be a VFS path and must end in `.csv`.
+  - `assignments` is required, and each assignment needs `cell` with optional `value`.
+  - Use A1 notation for `assignments[].cell`.
+  - CSV files do not support sheets or structure edits.
+  - `csv_create` fails if the file already exists.
+  - `csv_edit_cells` fails if the file does not exist.
+tools:
+  - csv_create
+  - csv_edit_cells

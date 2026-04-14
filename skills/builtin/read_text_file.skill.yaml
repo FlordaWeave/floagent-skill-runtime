@@ -1,0 +1,18 @@
+skill_id: read_text_file
+version: "1.0.0"
+name: read_text_file
+description: Read UTF-8 text content from a small file in the virtual workspace.
+instruction: |
+  Use this skill when you need to read the contents of a text file that already exists in the virtual workspace.
+
+  Example payload:
+  - `read_text_file`: `{"path":"task://notes/summary.txt","max_bytes":4096}`
+
+  Important constraints:
+  - `path` must be a VFS path such as `task://...`, `session://...`, or another valid virtual workspace URI.
+  - Only use this tool when you expect the target to be a real file and valid UTF-8 text.
+  - The builtin tool rejects files larger than 16384 bytes, and `max_bytes` cannot exceed that limit.
+  - Do not use this tool for binary files or attachments that have not been fetched into VFS yet.
+  - If you only have a `media_id` for an attachment and need file access first, use `media_fetch` before reading it as text.
+tools:
+  - read_text_file

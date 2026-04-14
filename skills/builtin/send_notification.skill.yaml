@@ -1,0 +1,38 @@
+skill_id: send_notification
+version: "1.0.0"
+name: send_notification
+description: Send a notification through an admin-configured notification channel.
+instruction: |
+  Use this skill when you need to send a notification through an admin-managed notification channel.
+
+  The top-level `message` payload is channel-generic:
+  - `message.kind` selects the channel family payload shape.
+  - Today only `kind: "wecom"` is supported.
+
+  Channel selection rules:
+  - Provide exactly one of `channel_name` or `channel_id`.
+  - Prefer `channel_name` for authored skills and human-readable workflows.
+  - Use `channel_id` only when a stricter machine-resolved selector is required.
+
+  For `message.kind = "wecom"`, the nested payload is `message.wecom` and supports:
+  - `text`, which requires `text.content` and may include `mentioned_list` and `mentioned_mobile_list`
+  - `markdown`, which requires `markdown.content`
+  - `markdown_v2`, which requires `markdown_v2.content`
+  - `image`, which requires `image.media_id`
+  - `file`, which requires `file.media_id`
+
+  Example payloads:
+  - `send_notification`: `{"channel_name":"ops-alerts","message":{"kind":"wecom","wecom":{"msgtype":"text","text":{"content":"Build completed successfully."}}}}`
+  - `send_notification`: `{"channel_name":"ops-alerts","message":{"kind":"wecom","wecom":{"msgtype":"markdown","markdown":{"content":"**Build failed**\n> service: api"}}}}`
+  - `send_notification`: `{"channel_name":"ops-alerts","message":{"kind":"wecom","wecom":{"msgtype":"markdown_v2","markdown_v2":{"content":"# Deploy\n- status: ok"}}}}`
+  - `send_notification`: `{"channel_name":"ops-alerts","message":{"kind":"wecom","wecom":{"msgtype":"image","image":{"media_id":"11111111-1111-1111-1111-111111111111"}}}}`
+  - `send_notification`: `{"channel_id":"22222222-2222-2222-2222-222222222222","message":{"kind":"wecom","wecom":{"msgtype":"file","file":{"media_id":"33333333-3333-3333-3333-333333333333"}}}}`
+
+  Important constraints:
+  - Do not provide both `channel_name` and `channel_id`.
+  - `message.kind` must match the selected channel type.
+  - Do not send `image` or `file` without a valid repo `media_id`.
+  - If you need to notify with a generated file first, create or upload the media before calling `send_notification`.
+  - Do not claim a notification was delivered unless the tool returns `delivered: true`.
+tools:
+  - send_notification
