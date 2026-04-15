@@ -1,5 +1,23 @@
 "use strict";
 
+// Local Node preload shim for Flo skill scripts.
+//
+// Why this exists:
+// - production skill scripts run inside the Flo script runtime, which injects
+//   `globalThis.flo`
+// - local Node runs do not have that runtime, so `node -r ./flo_init.js ...`
+//   installs a compatible testing surface first
+//
+// What this is for:
+// - lightweight local testing of skill TypeScript/JavaScript files
+// - editor/tooling-friendly smoke tests with the checked-in `flo.d.ts`
+// - optional execution of a local-only `__flo_main__()` export
+//
+// What this is not:
+// - not the source of truth for the production runtime
+// - not a full `agentd` execution environment
+// - not a general mock runtime for browser/task/tool APIs
+
 const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
@@ -99,13 +117,18 @@ const loadVaultMocks = () => {
     throw new Error("FLO_MOCKS_FILE must contain a JSON object");
   }
 
-  const profile = parsed.profile ?? {};
-  const shared = parsed.shared ?? {};
+  const vault = parsed.vault ?? {};
+  if (!vault || typeof vault !== "object" || Array.isArray(vault)) {
+    throw new Error("FLO_MOCKS_FILE `vault` must be an object when provided");
+  }
+
+  const profile = vault.profile ?? {};
+  const shared = vault.shared ?? {};
   if (!profile || typeof profile !== "object" || Array.isArray(profile)) {
-    throw new Error("FLO_MOCKS_FILE `profile` must be an object when provided");
+    throw new Error("FLO_MOCKS_FILE `vault.profile` must be an object when provided");
   }
   if (!shared || typeof shared !== "object" || Array.isArray(shared)) {
-    throw new Error("FLO_MOCKS_FILE `shared` must be an object when provided");
+    throw new Error("FLO_MOCKS_FILE `vault.shared` must be an object when provided");
   }
 
   cachedVaultMocks = { profile, shared };
