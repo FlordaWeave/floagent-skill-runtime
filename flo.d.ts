@@ -1,4 +1,22 @@
-declare global {
+type FloGlobalFetchHeaders = Record<string, string>;
+
+interface FloGlobalFetchInit {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: unknown;
+}
+
+interface FloGlobalFetchResponse {
+  status: number;
+  ok: boolean;
+  headers: FloGlobalFetchHeaders;
+  text(): Promise<string>;
+  json<T = unknown>(): Promise<T>;
+}
+
+declare function fetch(input: string, init?: FloGlobalFetchInit): Promise<FloGlobalFetchResponse>;
+
+declare module "flo:runtime" {
   type FloJsonValue =
     | null
     | boolean
@@ -6,13 +24,6 @@ declare global {
     | string
     | FloJsonValue[]
     | { [key: string]: FloJsonValue };
-
-  interface FloLogger {
-    debug(value: unknown): void;
-    info(value: unknown): void;
-    warn(value: unknown): void;
-    error(value: unknown): void;
-  }
 
   interface FloVaultProfileRequest {
     scope: "profile";
@@ -305,7 +316,6 @@ declare global {
     cookies: FloJsonValue;
     origins: FloJsonValue;
   }
-
   type FloBuiltinToolId =
     | "list_available_skills"
     | "read_text_file"
@@ -798,7 +808,6 @@ declare global {
   }
 
   interface FloRuntimeApi {
-    logger: FloLogger;
     sleep(ms: number): Promise<void>;
     time: {
       formatUnixTimestamp(timestamp: number, format: string, timezone?: string): string;
@@ -848,9 +857,11 @@ declare global {
     };
   }
 
-  var flo: FloRuntimeApi;
-
-  function fetch(input: string, init?: FloFetchInit): Promise<FloFetchResponse>;
+  export const sleep: FloRuntimeApi["sleep"];
+  export const time: FloRuntimeApi["time"];
+  export const vault: FloRuntimeApi["vault"];
+  export const state: FloRuntimeApi["state"];
+  export const task: FloRuntimeApi["task"];
+  export const callTool: FloRuntimeApi["callTool"];
+  export const browser: FloRuntimeApi["browser"];
 }
-
-export {};

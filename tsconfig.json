@@ -4,7 +4,8 @@
     "module": "ESNext",
     "strict": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "allowImportingTsExtensions": true
   },
-  "include": ["flo.d.ts", "skills/**/*.ts", "skills/**/*.d.ts"]
+  "include": ["flo.d.ts", "skills/**/*.mts", "skills/**/*.d.ts"]
 }
