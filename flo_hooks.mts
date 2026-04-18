@@ -30,6 +30,7 @@ declare global {
 const repoRoot = path.dirname(fileURLToPath(import.meta.url));
 const defaultLocalBrowserTaskId = "local-node-task";
 const defaultLocalBrowserSessionId = "local-node-session";
+const floTaskMaxSpawnChildren = 32;
 const localBrowserEnabled = process.env.FLO_LOCAL_BROWSER === "1";
 const floRuntimeModuleUrl = "flo-runtime:module";
 const mainScriptUrl = process.argv[1]
@@ -481,10 +482,16 @@ globalThis.__flo_runtime = {
     delete: async () => unsupported("flo.state.delete"),
   },
   task: {
+    limits: {
+      maxSpawnChildren: floTaskMaxSpawnChildren,
+    },
+    getToolState: async () => unsupported("flo.task.getToolState"),
+    putToolState: async () => unsupported("flo.task.putToolState"),
     getContext: async () => taskContext(),
     emitEvent: async () => unsupported("flo.task.emitEvent"),
     spawnChildren: async () => unsupported("flo.task.spawnChildren"),
-    awaitBatch: async () => unsupported("flo.task.awaitBatch"),
+    waitForBatch: async () => unsupported("flo.task.waitForBatch"),
+    getBatchResults: async () => unsupported("flo.task.getBatchResults"),
   },
   callTool: async () => unsupported("flo.callTool"),
   browser: {

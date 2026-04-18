@@ -69,10 +69,16 @@ declare module "flo:runtime" {
     | FloJsonValue[]
     | { [key: string]: FloJsonValue };
 
-  interface FloTaskContext {
-    resume_payload?: FloJsonValue;
-    join_required_recovery?: FloJsonValue;
+  interface FloTaskResumePayload {
+    batch_id?: string;
     [key: string]: FloJsonValue | undefined;
+  }
+
+  interface FloTaskContext {
+    resume_payload?: FloTaskResumePayload;
+    join_required_recovery?: FloJsonValue;
+    script_child_batch_defer_recovery?: FloJsonValue;
+    [key: string]: FloJsonValue | FloTaskResumePayload | undefined;
   }
 
   interface FloVaultProfileRequest {
@@ -175,6 +181,18 @@ declare module "flo:runtime" {
     payload?: unknown;
   }
 
+  interface FloTaskGetToolStateRequest {
+    key: string;
+    tool_id?: string;
+  }
+
+  interface FloTaskPutToolStateRequest<T = FloJsonValue> {
+    key: string;
+    value: T;
+    ttl_seconds?: number;
+    if_revision?: string | null;
+  }
+
   type FloWorkerKind =
     | "extractor"
     | "matcher"
@@ -191,7 +209,6 @@ declare module "flo:runtime" {
   }
 
   interface FloSpawnChildrenRequest {
-    mode: "join_required" | "detached";
     children: FloSpawnChildSpec[];
   }
 
@@ -217,7 +234,11 @@ declare module "flo:runtime" {
     event: unknown;
   }
 
-  interface FloAwaitBatchRequest {
+  interface FloGetBatchResultsRequest {
+    batch_id: string;
+  }
+
+  interface FloWaitForBatchRequest {
     batch_id: string;
   }
 
@@ -230,10 +251,14 @@ declare module "flo:runtime" {
     completed_at?: string;
   }
 
-  interface FloAwaitBatchResponse {
+  interface FloGetBatchResultsResponse {
     batch: FloChildBatch;
     results: FloChildResult[];
     all_terminal: boolean;
+  }
+
+  interface FloTaskLimits {
+    readonly maxSpawnChildren: number;
   }
 
   type FloFetchHeaders = Record<string, string>;
@@ -383,35 +408,59 @@ declare module "flo:runtime" {
     origins: FloJsonValue;
   }
   type FloBuiltinToolId =
+    /** Use this when the user asks what skills are available or what the agent can do. */
     | "list_available_skills"
+    /** Read UTF-8 text content from a VFS file. Only VFS URIs are allowed, and files larger than 16384 bytes are rejected. Only use this tool if you are sure the file exists. Example input: {"path":"task://notes/summary.txt","max_bytes":4096}. */
     | "read_text_file"
+    /** Write UTF-8 text content to a VFS file, creating parent directories as needed and overwriting any existing file. Only VFS URIs are allowed, and content larger than 65536 bytes is rejected. Example input: {"path":"task://notes/summary.txt","content":"hello world"}. */
     | "write_text_file"
+    /** List the immediate files and directories under a VFS directory. Only VFS URIs are allowed. Example input: {"path":"task://artifacts"}. */
     | "read_dir"
+    /** Create a ZIP archive from VFS files or directories. All input and output paths must be VFS URIs. Example input: {"input_paths":["task://report.txt","task://charts"],"output_path":"session://exports/report_bundle.zip"}. */
     | "zip"
+    /** Extract a ZIP archive from a VFS file into a VFS directory. All input and output paths must be VFS URIs. Example input: {"input_path":"session://imports/source.zip","output_dir":"task://unzipped/source"}. */
     | "unzip"
+    /** Inspect a CSV spreadsheet and return sheet dimensions plus a preview. Example input: {"path":"task://data/sales.csv"}. */
     | "csv_inspect"
+    /** Read a CSV A1 range. Example input: {"path":"task://data/sales.csv","range":"A1:C5"}. */
     | "csv_read"
+    /** Create a CSV file with initial cell assignments. Example input: {"path":"task://data/sales.csv","assignments":[{"cell":"A1","value":"Quarter"},{"cell":"B1","value":"Revenue"},{"cell":"A2","value":"Q1"},{"cell":"B2","value":12500}]}. */
     | "csv_create"
+    /** Edit cells in an existing CSV file. Example input: {"path":"task://data/sales.csv","assignments":[{"cell":"B2","value":12800},{"cell":"C2","value":"updated"}]}. */
     | "csv_edit_cells"
+    /** Inspect an XLSX workbook and return sheet dimensions plus previews. Example input: {"path":"task://spreadsheets/budget.xlsx"}. */
     | "excel_inspect"
+    /** Read an XLSX A1 range. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","range":"A1:D8"}. */
     | "excel_read"
+    /** Create an XLSX workbook with initial cell assignments. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","assignments":[{"cell":"A1","value":"Month"},{"cell":"B1","value":"Spend"},{"cell":"A2","value":"January"},{"cell":"B2","value":4200}]}. */
     | "excel_create"
+    /** Edit cells in an existing XLSX workbook. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","assignments":[{"cell":"B2","value":4500},{"cell":"C2","value":"forecast"}]}. */
     | "excel_edit_cells"
+    /** Insert or delete rows or columns in an XLSX workbook. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","operations":[{"kind":"insert_rows","index":3,"count":1},{"kind":"delete_columns","index":5,"count":1}]}. */
     | "excel_edit_structure"
+    /** Increase an XLSX row height to fit wrapped content. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","row":4}. */
     | "excel_auto_fit_row"
+    /** Atomically apply workbook structure edits, cell assignments, and row auto-fit in one XLSX save. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","operations":[{"kind":"insert_rows","index":3,"count":1}],"assignments":[{"cell":"A3","value":"February"},{"cell":"B3","value":3900}],"auto_fit_rows":[3]}. */
     | "excel_apply_changes"
+    /** Fetch remote media into the virtual workspace. Example input: {"media_id":"11111111-1111-1111-1111-111111111111","output_path":"session://imports/input.png"}. */
     | "media_fetch"
+    /** Upload a VFS file to media storage. Example input: {"input_path":"task://artifacts/result.png","filename":"report.png","ttl_seconds":3600}. */
     | "media_push_vfs"
+    /** Upload base64-encoded bytes to media storage. Example input: {"base64_data":"aGVsbG8=","media_type":"text/plain","filename":"hello.txt","ttl_seconds":3600}. */
     | "media_push_base64"
+    /** Send a notification through an admin-configured notification channel. Provide exactly one of channel_name or channel_id. Prefer channel_name in authored skills; use channel_id for stricter programmatic callers. Supported msgtype values are text, markdown, markdown_v2, image, and file. */
     | "send_notification"
+    /** Send previously uploaded media back to the current channel as a file attachment when it is smaller than 262144 bytes. Larger media returns a presigned download URL instead. Call media_push_vfs or media_push_base64 first, then pass the returned media_id here. Example input: {"media_id":"11111111-1111-1111-1111-111111111111","filename":"report.csv"}. */
     | "send_media_attachment"
-    | "spawn_children"
-    | "await_batch"
+    /** Read a text resource from a selected skill or import any skill resource into VFS by `skill_id` and `resource_id`. Use `resource_id` exactly as provided in the prompt (for example, `"resource.1"`). Do not strip prefixes, rewrite the value, or replace it with the filename. Valid example: `"resource_id":"resource.1"`. Invalid examples: `"resource_id":"1"` and `"resource_id":"guide.md"`. For text resources, prefer `mode=text` to read content directly. Use `mode=import_to_vfs` only when you need the resource saved as a VFS file for other tools or file-based processing, and provide `destination_path`. `destination_path` must be a VFS path such as `task://...` or `session://...`. Key takeaway: the `resource_id` is system-assigned and may differ from the actual file path. */
     | "read_skill_resource"
+    /** Import a file from a selected skill into VFS by `skill_id` and author-relative `asset_path`. `skill_id` must match one of the selected skills. `asset_path` must stay relative to that skill's directory; absolute paths and `..` traversal are rejected. `destination_path` must be a VFS path such as `task://...` or `session://...`. */
     | "import_skill_asset";
 
+  /** Input accepted by the `list_available_skills` runtime tool. */
   type FloListAvailableSkillsInput = {};
 
+  /** Output returned by the `list_available_skills` runtime tool. */
   type FloListAvailableSkillsOutput = {
     skill_count: number;
     skills: {
@@ -423,11 +472,13 @@ declare module "flo:runtime" {
       }[];
   };
 
+  /** Input accepted by the `read_text_file` runtime tool. */
   type FloReadTextFileInput = {
     max_bytes?: number;
     path: string;
   };
 
+  /** Output returned by the `read_text_file` runtime tool. */
   type FloReadTextFileOutput = {
     content: string;
     max_bytes: number;
@@ -435,20 +486,24 @@ declare module "flo:runtime" {
     size_bytes: number;
   };
 
+  /** Input accepted by the `write_text_file` runtime tool. */
   type FloWriteTextFileInput = {
     content: string;
     path: string;
   };
 
+  /** Output returned by the `write_text_file` runtime tool. */
   type FloWriteTextFileOutput = {
     bytes_written: number;
     path: string;
   };
 
+  /** Input accepted by the `read_dir` runtime tool. */
   type FloReadDirInput = {
     path: string;
   };
 
+  /** Output returned by the `read_dir` runtime tool. */
   type FloReadDirOutput = {
     entries: ({
         entry_type: "directory" | "file";
@@ -459,11 +514,13 @@ declare module "flo:runtime" {
     path: string;
   };
 
+  /** Input accepted by the `zip` runtime tool. */
   type FloZipInput = {
     input_paths: string[];
     output_path: string;
   };
 
+  /** Output returned by the `zip` runtime tool. */
   type FloZipOutput = {
     entry_count: number;
     input_paths: string[];
@@ -471,11 +528,13 @@ declare module "flo:runtime" {
     size_bytes: number;
   };
 
+  /** Input accepted by the `unzip` runtime tool. */
   type FloUnzipInput = {
     input_path: string;
     output_dir: string;
   };
 
+  /** Output returned by the `unzip` runtime tool. */
   type FloUnzipOutput = {
     entry_count: number;
     input_path: string;
@@ -483,10 +542,12 @@ declare module "flo:runtime" {
     written_paths: string[];
   };
 
+  /** Input accepted by the `csv_inspect` runtime tool. */
   type FloCsvInspectInput = {
     path: string;
   };
 
+  /** Output returned by the `csv_inspect` runtime tool. */
   type FloCsvInspectOutput = {
     format: "csv";
     path: string;
@@ -499,11 +560,13 @@ declare module "flo:runtime" {
       }[];
   };
 
+  /** Input accepted by the `csv_read` runtime tool. */
   type FloCsvReadInput = {
     path: string;
     range: string;
   };
 
+  /** Output returned by the `csv_read` runtime tool. */
   type FloCsvReadOutput = {
     columns: number;
     format: "csv";
@@ -514,6 +577,7 @@ declare module "flo:runtime" {
     values: FloJsonValue[][];
   };
 
+  /** Input accepted by the `csv_create` runtime tool. */
   type FloCsvCreateInput = {
     assignments: {
         cell: string;
@@ -522,12 +586,14 @@ declare module "flo:runtime" {
     path: string;
   };
 
+  /** Output returned by the `csv_create` runtime tool. */
   type FloCsvCreateOutput = {
     format: "csv";
     path: string;
     sheet: "Sheet1";
   };
 
+  /** Input accepted by the `csv_edit_cells` runtime tool. */
   type FloCsvEditCellsInput = {
     assignments: {
         cell: string;
@@ -536,16 +602,19 @@ declare module "flo:runtime" {
     path: string;
   };
 
+  /** Output returned by the `csv_edit_cells` runtime tool. */
   type FloCsvEditCellsOutput = {
     format: "csv";
     path: string;
     sheet: "Sheet1";
   };
 
+  /** Input accepted by the `excel_inspect` runtime tool. */
   type FloExcelInspectInput = {
     path: string;
   };
 
+  /** Output returned by the `excel_inspect` runtime tool. */
   type FloExcelInspectOutput = {
     format: "xlsx";
     path: string;
@@ -558,12 +627,14 @@ declare module "flo:runtime" {
       }[];
   };
 
+  /** Input accepted by the `excel_read` runtime tool. */
   type FloExcelReadInput = {
     path: string;
     range: string;
     sheet?: string;
   };
 
+  /** Output returned by the `excel_read` runtime tool. */
   type FloExcelReadOutput = {
     columns: number;
     format: "xlsx";
@@ -574,6 +645,7 @@ declare module "flo:runtime" {
     values: FloJsonValue[][];
   };
 
+  /** Input accepted by the `excel_create` runtime tool. */
   type FloExcelCreateInput = {
     assignments: {
         cell: string;
@@ -583,12 +655,14 @@ declare module "flo:runtime" {
     sheet?: string;
   };
 
+  /** Output returned by the `excel_create` runtime tool. */
   type FloExcelCreateOutput = {
     format: "xlsx";
     path: string;
     sheet?: string;
   };
 
+  /** Input accepted by the `excel_edit_cells` runtime tool. */
   type FloExcelEditCellsInput = {
     assignments: {
         cell: string;
@@ -598,12 +672,14 @@ declare module "flo:runtime" {
     sheet?: string;
   };
 
+  /** Output returned by the `excel_edit_cells` runtime tool. */
   type FloExcelEditCellsOutput = {
     format: "xlsx";
     path: string;
     sheet?: string;
   };
 
+  /** Input accepted by the `excel_edit_structure` runtime tool. */
   type FloExcelEditStructureInput = {
     operations: ({
         count?: number;
@@ -614,6 +690,7 @@ declare module "flo:runtime" {
     sheet?: string;
   };
 
+  /** Output returned by the `excel_edit_structure` runtime tool. */
   type FloExcelEditStructureOutput = {
     applied_count: number;
     applied_operations: ({
@@ -628,12 +705,14 @@ declare module "flo:runtime" {
     sheet: string;
   };
 
+  /** Input accepted by the `excel_auto_fit_row` runtime tool. */
   type FloExcelAutoFitRowInput = {
     path: string;
     row: number;
     sheet?: string;
   };
 
+  /** Output returned by the `excel_auto_fit_row` runtime tool. */
   type FloExcelAutoFitRowOutput = {
     format: "xlsx";
     path: string;
@@ -641,6 +720,7 @@ declare module "flo:runtime" {
     sheet: string;
   };
 
+  /** Input accepted by the `excel_apply_changes` runtime tool. */
   type FloExcelApplyChangesInput = {
     assignments?: {
         cell: string;
@@ -656,6 +736,7 @@ declare module "flo:runtime" {
     sheet?: string;
   };
 
+  /** Output returned by the `excel_apply_changes` runtime tool. */
   type FloExcelApplyChangesOutput = {
     applied_auto_fit_count: number;
     applied_auto_fit_rows: {
@@ -676,11 +757,13 @@ declare module "flo:runtime" {
     sheets_touched: string[];
   };
 
+  /** Input accepted by the `media_fetch` runtime tool. */
   type FloMediaFetchInput = {
     media_id: string;
     output_path: string;
   };
 
+  /** Output returned by the `media_fetch` runtime tool. */
   type FloMediaFetchOutput = {
     expires_at: string;
     media_id: string;
@@ -688,12 +771,14 @@ declare module "flo:runtime" {
     output_path: string;
   };
 
+  /** Input accepted by the `media_push_vfs` runtime tool. */
   type FloMediaPushVfsInput = {
     filename?: string;
     input_path: string;
     ttl_seconds?: number;
   };
 
+  /** Output returned by the `media_push_vfs` runtime tool. */
   type FloMediaPushVfsOutput = {
     expires_at: string;
     input_path: string;
@@ -702,6 +787,7 @@ declare module "flo:runtime" {
     size_bytes: number;
   };
 
+  /** Input accepted by the `media_push_base64` runtime tool. */
   type FloMediaPushBase64Input = {
     base64_data: string;
     filename?: string;
@@ -709,6 +795,7 @@ declare module "flo:runtime" {
     ttl_seconds?: number;
   };
 
+  /** Output returned by the `media_push_base64` runtime tool. */
   type FloMediaPushBase64Output = {
     expires_at: string;
     filename?: string;
@@ -717,6 +804,7 @@ declare module "flo:runtime" {
     size_bytes: number;
   };
 
+  /** Input accepted by the `send_notification` runtime tool. */
   type FloSendNotificationInput = {
     channel_id?: string;
     channel_name?: string;
@@ -725,6 +813,7 @@ declare module "flo:runtime" {
     } & Record<string, FloJsonValue>;
   };
 
+  /** Output returned by the `send_notification` runtime tool. */
   type FloSendNotificationOutput = {
     channel_id: string;
     channel_name: string;
@@ -732,11 +821,13 @@ declare module "flo:runtime" {
     kind: "wecom";
   };
 
+  /** Input accepted by the `send_media_attachment` runtime tool. */
   type FloSendMediaAttachmentInput = {
     filename?: string;
     media_id: string;
   };
 
+  /** Output returned by the `send_media_attachment` runtime tool. */
   type FloSendMediaAttachmentOutput = {
     filename?: string;
     media_id: string;
@@ -752,34 +843,7 @@ declare module "flo:runtime" {
     size_bytes: number;
   };
 
-  type FloSpawnChildrenInput = {
-    children: ({
-        input: FloJsonValue;
-        objective: string;
-        title: string;
-        worker_kind: "extractor" | "matcher" | "classifier" | "summarizer" | "aggregator" | "verifier";
-      })[];
-    mode: "join_required" | "detached";
-  };
-
-  type FloSpawnChildrenOutput = {
-    batch: {
-      batch_id: string;
-      child_count: number;
-      mode: "join_required" | "detached";
-    };
-  };
-
-  type FloAwaitBatchInput = {
-    batch_id: string;
-  };
-
-  type FloAwaitBatchOutput = {
-    all_terminal: boolean;
-    batch: {};
-    results: FloJsonValue[];
-  };
-
+  /** Input accepted by the `read_skill_resource` runtime tool. */
   type FloReadSkillResourceInput = {
     destination_path?: string;
     mode: "text" | "import_to_vfs";
@@ -787,6 +851,7 @@ declare module "flo:runtime" {
     skill_id: string;
   };
 
+  /** Output returned by the `read_skill_resource` runtime tool. */
   type FloReadSkillResourceOutput = {
     content: string;
     kind: "text";
@@ -803,12 +868,14 @@ declare module "flo:runtime" {
     skill_id: string;
   };
 
+  /** Input accepted by the `import_skill_asset` runtime tool. */
   type FloImportSkillAssetInput = {
     asset_path: string;
     destination_path: string;
     skill_id: string;
   };
 
+  /** Output returned by the `import_skill_asset` runtime tool. */
   type FloImportSkillAssetOutput = {
     asset_path: string;
     destination_path: string;
@@ -816,107 +883,196 @@ declare module "flo:runtime" {
   };
 
   interface FloBuiltinToolInputs {
+    /** Use this when the user asks what skills are available or what the agent can do. */
     "list_available_skills": FloListAvailableSkillsInput;
+    /** Read UTF-8 text content from a VFS file. Only VFS URIs are allowed, and files larger than 16384 bytes are rejected. Only use this tool if you are sure the file exists. Example input: {"path":"task://notes/summary.txt","max_bytes":4096}. */
     "read_text_file": FloReadTextFileInput;
+    /** Write UTF-8 text content to a VFS file, creating parent directories as needed and overwriting any existing file. Only VFS URIs are allowed, and content larger than 65536 bytes is rejected. Example input: {"path":"task://notes/summary.txt","content":"hello world"}. */
     "write_text_file": FloWriteTextFileInput;
+    /** List the immediate files and directories under a VFS directory. Only VFS URIs are allowed. Example input: {"path":"task://artifacts"}. */
     "read_dir": FloReadDirInput;
+    /** Create a ZIP archive from VFS files or directories. All input and output paths must be VFS URIs. Example input: {"input_paths":["task://report.txt","task://charts"],"output_path":"session://exports/report_bundle.zip"}. */
     "zip": FloZipInput;
+    /** Extract a ZIP archive from a VFS file into a VFS directory. All input and output paths must be VFS URIs. Example input: {"input_path":"session://imports/source.zip","output_dir":"task://unzipped/source"}. */
     "unzip": FloUnzipInput;
+    /** Inspect a CSV spreadsheet and return sheet dimensions plus a preview. Example input: {"path":"task://data/sales.csv"}. */
     "csv_inspect": FloCsvInspectInput;
+    /** Read a CSV A1 range. Example input: {"path":"task://data/sales.csv","range":"A1:C5"}. */
     "csv_read": FloCsvReadInput;
+    /** Create a CSV file with initial cell assignments. Example input: {"path":"task://data/sales.csv","assignments":[{"cell":"A1","value":"Quarter"},{"cell":"B1","value":"Revenue"},{"cell":"A2","value":"Q1"},{"cell":"B2","value":12500}]}. */
     "csv_create": FloCsvCreateInput;
+    /** Edit cells in an existing CSV file. Example input: {"path":"task://data/sales.csv","assignments":[{"cell":"B2","value":12800},{"cell":"C2","value":"updated"}]}. */
     "csv_edit_cells": FloCsvEditCellsInput;
+    /** Inspect an XLSX workbook and return sheet dimensions plus previews. Example input: {"path":"task://spreadsheets/budget.xlsx"}. */
     "excel_inspect": FloExcelInspectInput;
+    /** Read an XLSX A1 range. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","range":"A1:D8"}. */
     "excel_read": FloExcelReadInput;
+    /** Create an XLSX workbook with initial cell assignments. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","assignments":[{"cell":"A1","value":"Month"},{"cell":"B1","value":"Spend"},{"cell":"A2","value":"January"},{"cell":"B2","value":4200}]}. */
     "excel_create": FloExcelCreateInput;
+    /** Edit cells in an existing XLSX workbook. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","assignments":[{"cell":"B2","value":4500},{"cell":"C2","value":"forecast"}]}. */
     "excel_edit_cells": FloExcelEditCellsInput;
+    /** Insert or delete rows or columns in an XLSX workbook. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","operations":[{"kind":"insert_rows","index":3,"count":1},{"kind":"delete_columns","index":5,"count":1}]}. */
     "excel_edit_structure": FloExcelEditStructureInput;
+    /** Increase an XLSX row height to fit wrapped content. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","row":4}. */
     "excel_auto_fit_row": FloExcelAutoFitRowInput;
+    /** Atomically apply workbook structure edits, cell assignments, and row auto-fit in one XLSX save. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","operations":[{"kind":"insert_rows","index":3,"count":1}],"assignments":[{"cell":"A3","value":"February"},{"cell":"B3","value":3900}],"auto_fit_rows":[3]}. */
     "excel_apply_changes": FloExcelApplyChangesInput;
+    /** Fetch remote media into the virtual workspace. Example input: {"media_id":"11111111-1111-1111-1111-111111111111","output_path":"session://imports/input.png"}. */
     "media_fetch": FloMediaFetchInput;
+    /** Upload a VFS file to media storage. Example input: {"input_path":"task://artifacts/result.png","filename":"report.png","ttl_seconds":3600}. */
     "media_push_vfs": FloMediaPushVfsInput;
+    /** Upload base64-encoded bytes to media storage. Example input: {"base64_data":"aGVsbG8=","media_type":"text/plain","filename":"hello.txt","ttl_seconds":3600}. */
     "media_push_base64": FloMediaPushBase64Input;
+    /** Send a notification through an admin-configured notification channel. Provide exactly one of channel_name or channel_id. Prefer channel_name in authored skills; use channel_id for stricter programmatic callers. Supported msgtype values are text, markdown, markdown_v2, image, and file. */
     "send_notification": FloSendNotificationInput;
+    /** Send previously uploaded media back to the current channel as a file attachment when it is smaller than 262144 bytes. Larger media returns a presigned download URL instead. Call media_push_vfs or media_push_base64 first, then pass the returned media_id here. Example input: {"media_id":"11111111-1111-1111-1111-111111111111","filename":"report.csv"}. */
     "send_media_attachment": FloSendMediaAttachmentInput;
-    "spawn_children": FloSpawnChildrenInput;
-    "await_batch": FloAwaitBatchInput;
+    /** Read a text resource from a selected skill or import any skill resource into VFS by `skill_id` and `resource_id`. Use `resource_id` exactly as provided in the prompt (for example, `"resource.1"`). Do not strip prefixes, rewrite the value, or replace it with the filename. Valid example: `"resource_id":"resource.1"`. Invalid examples: `"resource_id":"1"` and `"resource_id":"guide.md"`. For text resources, prefer `mode=text` to read content directly. Use `mode=import_to_vfs` only when you need the resource saved as a VFS file for other tools or file-based processing, and provide `destination_path`. `destination_path` must be a VFS path such as `task://...` or `session://...`. Key takeaway: the `resource_id` is system-assigned and may differ from the actual file path. */
     "read_skill_resource": FloReadSkillResourceInput;
+    /** Import a file from a selected skill into VFS by `skill_id` and author-relative `asset_path`. `skill_id` must match one of the selected skills. `asset_path` must stay relative to that skill's directory; absolute paths and `..` traversal are rejected. `destination_path` must be a VFS path such as `task://...` or `session://...`. */
     "import_skill_asset": FloImportSkillAssetInput;
   }
 
   interface FloBuiltinToolOutputs {
+    /** Output returned by the `list_available_skills` runtime tool. */
     "list_available_skills": FloListAvailableSkillsOutput;
+    /** Output returned by the `read_text_file` runtime tool. */
     "read_text_file": FloReadTextFileOutput;
+    /** Output returned by the `write_text_file` runtime tool. */
     "write_text_file": FloWriteTextFileOutput;
+    /** Output returned by the `read_dir` runtime tool. */
     "read_dir": FloReadDirOutput;
+    /** Output returned by the `zip` runtime tool. */
     "zip": FloZipOutput;
+    /** Output returned by the `unzip` runtime tool. */
     "unzip": FloUnzipOutput;
+    /** Output returned by the `csv_inspect` runtime tool. */
     "csv_inspect": FloCsvInspectOutput;
+    /** Output returned by the `csv_read` runtime tool. */
     "csv_read": FloCsvReadOutput;
+    /** Output returned by the `csv_create` runtime tool. */
     "csv_create": FloCsvCreateOutput;
+    /** Output returned by the `csv_edit_cells` runtime tool. */
     "csv_edit_cells": FloCsvEditCellsOutput;
+    /** Output returned by the `excel_inspect` runtime tool. */
     "excel_inspect": FloExcelInspectOutput;
+    /** Output returned by the `excel_read` runtime tool. */
     "excel_read": FloExcelReadOutput;
+    /** Output returned by the `excel_create` runtime tool. */
     "excel_create": FloExcelCreateOutput;
+    /** Output returned by the `excel_edit_cells` runtime tool. */
     "excel_edit_cells": FloExcelEditCellsOutput;
+    /** Output returned by the `excel_edit_structure` runtime tool. */
     "excel_edit_structure": FloExcelEditStructureOutput;
+    /** Output returned by the `excel_auto_fit_row` runtime tool. */
     "excel_auto_fit_row": FloExcelAutoFitRowOutput;
+    /** Output returned by the `excel_apply_changes` runtime tool. */
     "excel_apply_changes": FloExcelApplyChangesOutput;
+    /** Output returned by the `media_fetch` runtime tool. */
     "media_fetch": FloMediaFetchOutput;
+    /** Output returned by the `media_push_vfs` runtime tool. */
     "media_push_vfs": FloMediaPushVfsOutput;
+    /** Output returned by the `media_push_base64` runtime tool. */
     "media_push_base64": FloMediaPushBase64Output;
+    /** Output returned by the `send_notification` runtime tool. */
     "send_notification": FloSendNotificationOutput;
+    /** Output returned by the `send_media_attachment` runtime tool. */
     "send_media_attachment": FloSendMediaAttachmentOutput;
-    "spawn_children": FloSpawnChildrenOutput;
-    "await_batch": FloAwaitBatchOutput;
+    /** Output returned by the `read_skill_resource` runtime tool. */
     "read_skill_resource": FloReadSkillResourceOutput;
+    /** Output returned by the `import_skill_asset` runtime tool. */
     "import_skill_asset": FloImportSkillAssetOutput;
   }
 
   interface FloRuntimeApi {
+    /** Pause the script for the requested number of milliseconds. */
     sleep(ms: number): Promise<void>;
     time: {
+      /** Format a Unix timestamp with the runtime's supported date format tokens. */
       formatUnixTimestamp(timestamp: number, format: string, timezone?: string): string;
     };
+    /** Read secrets from the configured profile or shared vault scope. */
     vault: {
+      /** Fetch a vault secret value. Secrets are never exposed through manifests. */
       get(request: FloVaultRequest): Promise<string>;
     };
+    /** Read and write manifest-declared state bindings. */
     state: {
+      /** Read one value from a state binding. */
       get<T = FloJsonValue>(request: FloStateGetRequest): Promise<FloStateEntry<T> | null>;
+      /** List values under a state-binding key prefix. */
       list<T = FloJsonValue>(request: FloStateListRequest): Promise<FloStateListResult<T>>;
+      /** Write one JSON-serializable value to a state binding. */
       put<T = FloJsonValue>(request: FloStatePutRequest<T>): Promise<FloStateWriteResult<T>>;
+      /** Delete one value from a state binding. */
       delete(request: FloStateDeleteRequest): Promise<{ ok: boolean; conflict_revision?: string }>;
     };
+    /** Access task context, task events, and child-task orchestration. */
     task: {
+      /** Runtime limits for task orchestration helpers. */
+      limits: FloTaskLimits;
+      /** Read tool-partitioned convenience state from the current task. */
+      getToolState<T = FloJsonValue>(request: FloTaskGetToolStateRequest): Promise<T | null>;
+      /** Write tool-partitioned convenience state for the current tool in the current task. */
+      putToolState<T = FloJsonValue>(
+        request: FloTaskPutToolStateRequest<T>,
+      ): Promise<FloStateWriteResult<T>>;
+      /** Return the current durable task context, including resume payloads when present. */
       getContext<TContext = FloTaskContext>(): Promise<TContext>;
+      /** Append a structured event to the current task timeline. */
       emitEvent(request: FloTaskEmitEventRequest): Promise<void>;
+      /** Spawn durable child tasks for specialized parallel work. */
       spawnChildren(request: FloSpawnChildrenRequest): Promise<FloSpawnChildrenResponse>;
-      awaitBatch(request: FloAwaitBatchRequest): Promise<FloAwaitBatchResponse>;
+      /**
+       * Suspend the parent task until the child batch is terminal, then return its results.
+       *
+       * The runtime re-enters the same script after resume; it does not preserve the JS stack.
+       * Persist any script progress needed after resume with `putToolState` before calling this.
+       */
+      waitForBatch(
+        request: FloWaitForBatchRequest,
+      ): Promise<FloGetBatchResultsResponse>;
+      /**
+       * Return results for a terminal child batch.
+       *
+       * This fails non-retryably when the batch is still pending; scripts should call it only
+       * after other control flow has established that `all_terminal` is true.
+       */
+      getBatchResults(request: FloGetBatchResultsRequest): Promise<FloGetBatchResultsResponse>;
     };
+    /** Call a built-in or selected-skill tool through the runtime registry. */
     callTool<TToolId extends FloBuiltinToolId>(
       request: { tool_id: TToolId; input: FloBuiltinToolInputs[TToolId] },
     ): Promise<FloToolCallResult<FloBuiltinToolOutputs[TToolId]>>;
+    /** Call a tool when only generic input/output types are known. */
     callTool<TOutput = unknown, TInput = unknown>(
       request: FloCallToolRequest<TInput>,
     ): Promise<FloToolCallResult<TOutput>>;
+    /** Drive a host-managed Playwright browser session. */
     browser: {
+      /** Run a single browser command in the current task browser session. */
       run(
         command: FloBrowserCommand,
         options?: FloBrowserSessionOptions,
       ): Promise<FloBrowserCommandResult | FloJsonValue>;
+      /** Start capturing matching network requests for the browser session. */
       startRequestCapture(
         matchers: FloBrowserRequestCaptureMatcher[],
         options?: FloBrowserSessionOptions,
       ): Promise<{ current_url?: string | null; capture_id: string }>;
+      /** Collect network requests captured for a capture id. */
       collectCapturedRequests(
         capture_id: string,
         options?: FloBrowserSessionOptions & { timeout_ms?: number },
       ): Promise<{ current_url?: string | null; captures: FloBrowserRequestCaptureResult[] }>;
+      /** Stop a network request capture and release its runtime resources. */
       stopRequestCapture(
         capture_id: string,
         options?: FloBrowserSessionOptions,
       ): Promise<{ current_url?: string | null; stopped: boolean }>;
+      /** Export browser storage state so the task can suspend and resume after handoff. */
       exportState(options?: FloBrowserSessionOptions): Promise<FloBrowserStorageState>;
+      /** Import a previously exported browser storage state into the session. */
       importState(
         state: FloBrowserStorageState,
         options?: FloBrowserSessionOptions,
@@ -924,11 +1080,18 @@ declare module "flo:runtime" {
     };
   }
 
+  /** Pause the script for the requested number of milliseconds. */
   export const sleep: FloRuntimeApi["sleep"];
+  /** Date and time helpers exposed by the Flo runtime. */
   export const time: FloRuntimeApi["time"];
+  /** Vault secret helpers exposed by the Flo runtime. */
   export const vault: FloRuntimeApi["vault"];
+  /** State binding helpers exposed by the Flo runtime. */
   export const state: FloRuntimeApi["state"];
+  /** Durable task helpers exposed by the Flo runtime. */
   export const task: FloRuntimeApi["task"];
+  /** Tool invocation helper exposed by the Flo runtime. */
   export const callTool: FloRuntimeApi["callTool"];
+  /** Browser automation helpers exposed by the Flo runtime. */
   export const browser: FloRuntimeApi["browser"];
 }
