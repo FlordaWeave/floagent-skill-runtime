@@ -29,7 +29,7 @@ Manifest state bindings support these scope kinds:
 - `task`
 - `shared`
 
-For `shared`, bindings may declare a fixed `scope_id`. When they do, scripts do not pass `scope_id` at runtime. If a shared binding omits `scope_id`, runtime calls must provide it.
+For `shared`, bindings must declare `scope_id`. Scripts do not pass `scope_id` at runtime.
 
 ## Read, List, Write, Delete
 
@@ -96,6 +96,8 @@ Use manifest-declared state for:
 - caches that need clear ownership
 - profile/session/task/shared durable data
 - multi-step flows that need explicit persistence
+
+The runtime authorizes each call by matching the request `scope_kind` and key or key prefix against the manifest-declared bindings for the tool.
 
 Use [Task Tool State](task-tool-state.md) for lightweight task-scoped convenience state that does not need a manifest binding.
 

@@ -99,41 +99,24 @@ declare module "flo:runtime" {
   interface FloStateBindingRequestBase {
     scope_kind: FloStateScopeKind;
   }
-
-  interface FloStateSharedBindingRequestBase extends FloStateBindingRequestBase {
-    scope_id: string;
-  }
-
-  type FloStateGetRequest = (
-    | FloStateBindingRequestBase
-    | FloStateSharedBindingRequestBase
-  ) & {
+  type FloStateGetRequest = FloStateBindingRequestBase & {
     key: string;
   };
 
-  type FloStateListRequest = (
-    | FloStateBindingRequestBase
-    | FloStateSharedBindingRequestBase
-  ) & {
+  type FloStateListRequest = FloStateBindingRequestBase & {
     key_prefix: string;
     limit?: number;
     cursor?: string;
   };
 
-  type FloStatePutRequest<T = FloJsonValue> = (
-    | FloStateBindingRequestBase
-    | FloStateSharedBindingRequestBase
-  ) & {
+  type FloStatePutRequest<T = FloJsonValue> = FloStateBindingRequestBase & {
     key: string;
     value: T;
     ttl_seconds?: number;
     if_revision?: string | null;
   };
 
-  type FloStateDeleteRequest = (
-    | FloStateBindingRequestBase
-    | FloStateSharedBindingRequestBase
-  ) & {
+  type FloStateDeleteRequest = FloStateBindingRequestBase & {
     key: string;
     if_revision?: string | null;
   };

@@ -47,7 +47,49 @@ const results = await flo.task.waitForBatch({
 });
 ```
 
-Important: after suspension, the runtime re-enters the script from the entrypoint. Persist the progress you need before waiting.
+## Important: Suspension Restarts The Script
+
+> Important: after suspension, the runtime re-enters the script from the entrypoint. Persist the progress you need before waiting.
+
+What this means in practice:
+
+- local variables do not survive suspension
+- the JavaScript call stack is not restored
+- code after `waitForBatch(...)` only runs when the script reaches that point again on the resumed invocation
+
+Treat `waitForBatch(...)` like a durable checkpoint boundary:
+
+- write the child batch id before waiting
+- write any progress markers you need to decide what to do on resume
+- on the next entrypoint run, read that state back and branch accordingly
+
+Typical pattern:
+
+```ts
+const checkpoint = await flo.task.getToolState<{ batch_id?: string }>({
+  key: "batch_checkpoint",
+});
+
+if (!checkpoint?.batch_id) {
+  const spawned = await flo.task.spawnChildren({ children });
+  await flo.task.putToolState({
+    key: "batch_checkpoint",
+    value: { batch_id: spawned.batch.batch_id },
+  });
+  await flo.task.waitForBatch({
+    batch_id: spawned.batch.batch_id,
+  });
+}
+
+const resumed = await flo.task.getToolState<{ batch_id: string }>({
+  key: "batch_checkpoint",
+});
+const results = await flo.task.getBatchResults({
+  batch_id: resumed.batch_id,
+});
+```
+
+Use [Task Tool State](task-tool-state.md) for these checkpoints unless you specifically need manifest-declared `flo.state`.
 
 ## Read Results Without Suspending
 

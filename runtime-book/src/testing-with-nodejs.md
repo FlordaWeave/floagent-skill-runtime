@@ -207,7 +207,7 @@ await flo.state.get({
 });
 ```
 
-If a shared local binding omits `scope_id`, provide it in the request.
+Shared local bindings must declare `scope_id` in `state_bindings`; the shim does not accept request-time `scope_id` for `flo.state.*`.
 
 ## What Fails Fast In The Local Shim
 

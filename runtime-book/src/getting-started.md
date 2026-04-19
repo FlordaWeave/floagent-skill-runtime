@@ -29,7 +29,7 @@ For a full local testing workflow, see [Testing With Node.js](testing-with-nodej
 - TypeScript is transpiled at runtime, but it is not type checked there.
 - Static relative imports are supported.
 - Bare imports, package-style imports, and dynamic `import()` are rejected.
-- Some APIs are runtime-bound and intentionally fail in the local shim, including `flo.callTool(...)`, `flo.state.*`, and child-task orchestration.
+- Some APIs are still runtime-bound and intentionally fail in the local shim, including `flo.callTool(...)` and child-task orchestration. The shim does support `flo.state.*` when `FLO_MOCKS_FILE` includes matching `state_bindings`.
 - Browser helpers require `FLO_LOCAL_BROWSER=1` in the local shim.
 
 ## Simple Script Example

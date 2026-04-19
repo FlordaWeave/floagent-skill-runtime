@@ -67,6 +67,14 @@ return {
 
 Nested tool calls run in the same runtime tool execution context as the calling script. In practice, this means task- and session-scoped helpers continue to operate on the current task and current virtual workspace.
 
+## Manifest Boundaries
+
+`flo.callTool(...)` crosses a runtime tool boundary. The called tool runs with its own manifest-declared `vault` and `state` bindings, so the runtime applies that wiring automatically for the nested call.
+
+By contrast, a plain TypeScript `import` does not create a new tool boundary. Imported code runs as part of the current script tool, so the current tool manifest must declare any `flo.vault.get(...)` and `flo.state.*` access used by that code.
+
+Use `flo.callTool(...)` when you want another tool's manifest contract to apply. Use local imports when you just want to share code within one tool's existing manifest contract.
+
 Good uses:
 
 - reading or writing VFS files through built-in tools

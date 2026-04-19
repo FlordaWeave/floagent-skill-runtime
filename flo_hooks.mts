@@ -433,7 +433,7 @@ type LocalStateBinding = {
   name: string;
   key_prefix: string;
   scope_kind: keyof LocalStateScopes;
-  scope_id?: string;
+  scope_id: string | undefined;
 };
 
 const emptyLocalStateScopes = (): LocalStateScopes => ({
@@ -545,6 +545,11 @@ const validateStateBindings = (value: unknown): LocalStateBinding[] => {
             `FLO_MOCKS_FILE state_bindings[${index}].scope_id must be a non-empty string`,
           );
     if (scopeKind === "shared") {
+      if (scopeId === undefined) {
+        throw new Error(
+          `FLO_MOCKS_FILE state_bindings[${index}].scope_id is required for shared scope_kind`,
+        );
+      }
       return { name, key_prefix: keyPrefix, scope_kind: scopeKind, scope_id: scopeId };
     }
     if (scopeId !== undefined) {
@@ -756,15 +761,12 @@ const resolveStateScopeId = (
   name: string,
 ): string => {
   if (binding.scope_kind === "shared") {
-    if (binding.scope_id !== undefined) {
-      if (Object.prototype.hasOwnProperty.call(request, "scope_id")) {
-        throw new TypeError(
-          `${name} does not accept \`scope_id\` when the local binding fixes the shared scope`,
-        );
-      }
-      return binding.scope_id;
+    if (Object.prototype.hasOwnProperty.call(request, "scope_id")) {
+      throw new TypeError(`${name} does not accept \`scope_id\``);
     }
-    return requireNonEmptyString(request.scope_id, `${name} requires non-empty \`scope_id\` for shared scope`);
+    return binding.scope_id ?? (() => {
+      throw new TypeError(`${name} requires manifest-configured shared scope_id`);
+    })();
   }
 
   if (Object.prototype.hasOwnProperty.call(request, "scope_id") && request.scope_id !== undefined) {
