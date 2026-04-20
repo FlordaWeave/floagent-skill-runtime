@@ -2,6 +2,15 @@
 
 Use `flo.callTool(...)` to call another runtime tool from your script.
 
+Nested calls are still scoped by the selected skill set. A script can call:
+
+- globally available runtime tools
+- tools listed in the skill manifest's `tools`
+- tools listed in the skill manifest's `script_tools`
+- inline tools declared via `tool_definitions`
+
+`script_tools` are the usual choice when you want a helper tool callable from script without adding it to the LLM-visible tool list. Inline tools from `tool_definitions` are also callable because they are compiled into the selected skill's runtime tool set automatically.
+
 ## Generic Form
 
 ```ts
@@ -38,6 +47,23 @@ const file = await flo.callTool({
   },
 });
 ```
+
+## Manifest Setup
+
+Use `tools` when the LLM should be able to call the tool directly.
+
+Use `script_tools` when only your script should call it:
+
+```yaml
+skill_id: file_sender
+name: File Sender
+description: Prepare a file and return it as an attachment.
+script_tools:
+  - send_media_attachment
+instruction_file: instructions.md
+```
+
+In that example, `send_media_attachment` is available to `flo.callTool(...)` inside the selected skill's scripts, but it is not exposed in the execution-stage LLM tool list.
 
 ## Error Handling Pattern
 
@@ -79,6 +105,7 @@ Good uses:
 
 - reading or writing VFS files through built-in tools
 - composing smaller tools into a larger workflow
+- calling skill-scoped helper tools through `script_tools` without polluting the prompt tool list
 - delegating format-specific work to a built-in tool
 
 Avoid using nested calls as a substitute for simple local code when a direct script implementation is clearer.

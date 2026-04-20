@@ -68,8 +68,10 @@ Optional fields include:
 
 - `version`
 - `tools`
+- `script_tools`
 - `tool_definitions`
 - `requires_skills`
+- `requires_labels`
 
 Example:
 
@@ -79,6 +81,8 @@ name: Browser Examples
 description: Browser-based tools for authenticated workflows.
 tools:
   - read_text_file
+script_tools:
+  - send_media_attachment
 tool_definitions:
   - name: capture_example
     description: Open a page and return the current URL.
@@ -94,6 +98,27 @@ tool_definitions:
       entrypoint: run
 instruction_file: instructions.md
 ```
+
+Field behavior:
+
+- `tools`
+  - declares referenced external or built-in tool ids for the selected skill
+  - these tools are exposed to the LLM tool list
+  - these tools are also callable from `flo.callTool(...)`
+- `script_tools`
+  - declares referenced external or built-in tool ids for the selected skill
+  - these tools are callable from `flo.callTool(...)`
+  - these tools are not exposed to the LLM tool list
+- `tool_definitions`
+  - declares inline tool manifests owned by the skill
+  - inline tools are available to the selected skill without being repeated in `tools` or `script_tools`
+
+Authoring rules:
+
+- use `tools` when the model should be able to call the tool directly
+- use `script_tools` when only your script should call the tool
+- do not repeat an inline tool from `tool_definitions` in either `tools` or `script_tools`
+- `script_tools` only changes LLM visibility; it does not create a separate security boundary from the selected skill's scripts
 
 ## State and Vault Declarations
 
