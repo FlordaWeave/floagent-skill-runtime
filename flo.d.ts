@@ -419,11 +419,19 @@ declare module "flo:runtime" {
     | "excel_create"
     /** Edit cells in an existing XLSX workbook. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","assignments":[{"cell":"B2","value":4500},{"cell":"C2","value":"forecast"}]}. */
     | "excel_edit_cells"
+    /** Copy XLSX cell style to matching target cells without changing their values. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","source_cell":"B2","target_cells":["B3","B4","D2"]}. */
+    | "excel_copy_cell_style"
+    /** Clear XLSX cell style from target cells without changing their values. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","cells":["B3","B4","Other!D2"]}. */
+    | "excel_clear_cell_style"
+    /** Copy XLSX row style, per-cell styles, merged cells, and row height to target rows without changing their values. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","source_row":{"row":2},"target_rows":[{"row":3},{"row":4}]}. */
+    | "excel_copy_row"
+    /** Copy XLSX column style, per-cell styles, merged cells, and column width to target columns without changing their values. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","source_column":{"column":"B"},"target_columns":[{"column":"C"},{"column":"D"}]}. */
+    | "excel_copy_column"
     /** Insert or delete rows or columns in an XLSX workbook. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","operations":[{"kind":"insert_rows","index":3,"count":1},{"kind":"delete_columns","index":5,"count":1}]}. */
     | "excel_edit_structure"
     /** Increase an XLSX row height to fit wrapped content. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","row":4}. */
     | "excel_auto_fit_row"
-    /** Atomically apply workbook structure edits, cell assignments, and row auto-fit in one XLSX save. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","operations":[{"kind":"insert_rows","index":3,"count":1}],"assignments":[{"cell":"A3","value":"February"},{"cell":"B3","value":3900}],"auto_fit_rows":[3]}. */
+    /** Atomically apply workbook structure edits, cell assignments, row copies, column copies, style copies, and row auto-fit in one XLSX save. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","operations":[{"kind":"insert_rows","index":3,"count":1}],"assignments":[{"cell":"A3","value":"February"},{"cell":"B3","value":3900}],"row_copies":[{"source_row":{"row":2},"target_rows":[{"row":3}]}],"style_copies":[{"source_cell":"B2","target_cells":["B3"]}],"auto_fit_rows":[3]}. */
     | "excel_apply_changes"
     /** Fetch remote media into the virtual workspace. Example input: {"media_id":"11111111-1111-1111-1111-111111111111","output_path":"session://imports/input.png"}. */
     | "media_fetch"
@@ -662,6 +670,102 @@ declare module "flo:runtime" {
     sheet?: string;
   };
 
+  /** Input accepted by the `excel_copy_cell_style` runtime tool. */
+  type FloExcelCopyCellStyleInput = {
+    path: string;
+    sheet?: string;
+    source_cell?: string;
+    target_cells?: string[];
+  };
+
+  /** Output returned by the `excel_copy_cell_style` runtime tool. */
+  type FloExcelCopyCellStyleOutput = {
+    applied_targets: {
+        cell?: string;
+        sheet: string;
+      }[];
+    copied_count: number;
+    format: "xlsx";
+    path: string;
+    sheets_touched: string[];
+    source_cell?: string;
+  };
+
+  /** Input accepted by the `excel_clear_cell_style` runtime tool. */
+  type FloExcelClearCellStyleInput = {
+    cells: string[];
+    path: string;
+    sheet?: string;
+  };
+
+  /** Output returned by the `excel_clear_cell_style` runtime tool. */
+  type FloExcelClearCellStyleOutput = {
+    cleared_count: number;
+    cleared_targets: {
+        cell: string;
+        sheet: string;
+      }[];
+    format: "xlsx";
+    path: string;
+    sheets_touched: string[];
+  };
+
+  /** Input accepted by the `excel_copy_row` runtime tool. */
+  type FloExcelCopyRowInput = {
+    path: string;
+    sheet?: string;
+    source_row: {
+      row: number;
+      sheet?: string;
+    };
+    target_rows: {
+        row: number;
+        sheet?: string;
+      }[];
+  };
+
+  /** Output returned by the `excel_copy_row` runtime tool. */
+  type FloExcelCopyRowOutput = {
+    applied_targets: {
+        merge_ranges: string[];
+        row: number;
+        sheet: string;
+      }[];
+    copied_count: number;
+    format: "xlsx";
+    path: string;
+    sheets_touched: string[];
+    source_row: number;
+  };
+
+  /** Input accepted by the `excel_copy_column` runtime tool. */
+  type FloExcelCopyColumnInput = {
+    path: string;
+    sheet?: string;
+    source_column: {
+      column: string;
+      sheet?: string;
+    };
+    target_columns: {
+        column: string;
+        sheet?: string;
+      }[];
+  };
+
+  /** Output returned by the `excel_copy_column` runtime tool. */
+  type FloExcelCopyColumnOutput = {
+    applied_targets: {
+        column: string;
+        merge_ranges: string[];
+        sheet: string;
+      }[];
+    copied_count: number;
+    format: "xlsx";
+    path: string;
+    sheets_touched: string[];
+    source_column: string;
+  };
+
   /** Input accepted by the `excel_edit_structure` runtime tool. */
   type FloExcelEditStructureInput = {
     operations: ({
@@ -710,13 +814,37 @@ declare module "flo:runtime" {
         value?: FloJsonValue;
       }[];
     auto_fit_rows?: number[];
+    column_copies?: {
+        source_column: {
+          column: string;
+          sheet?: string;
+        };
+        target_columns: {
+            column: string;
+            sheet?: string;
+          }[];
+      }[];
     operations?: ({
         count?: number;
         index: number;
         kind: "insert_rows" | "delete_rows" | "insert_columns" | "delete_columns";
       })[];
     path: string;
+    row_copies?: {
+        source_row: {
+          row: number;
+          sheet?: string;
+        };
+        target_rows: {
+            row: number;
+            sheet?: string;
+          }[];
+      }[];
     sheet?: string;
+    style_copies?: {
+        source_cell?: string;
+        target_cells?: string[];
+      }[];
   };
 
   /** Output returned by the `excel_apply_changes` runtime tool. */
@@ -726,6 +854,15 @@ declare module "flo:runtime" {
         row: number;
         sheet: string;
       }[];
+    applied_column_copies: {
+        source_column: string;
+        targets: {
+            column: string;
+            merge_ranges: string[];
+            sheet: string;
+          }[];
+      }[];
+    applied_column_copy_count: number;
     applied_count: number;
     applied_operations: ({
         column?: string;
@@ -734,6 +871,23 @@ declare module "flo:runtime" {
         kind: "insert_rows" | "delete_rows" | "insert_columns" | "delete_columns";
         sheet: string;
       })[];
+    applied_row_copies: {
+        source_row: number;
+        targets: {
+            merge_ranges: string[];
+            row: number;
+            sheet: string;
+          }[];
+      }[];
+    applied_row_copy_count: number;
+    applied_style_copies: {
+        source_cell?: string;
+        targets: {
+            cell?: string;
+            sheet: string;
+          }[];
+      }[];
+    applied_style_copy_count: number;
     cell_assignment_count: number;
     format: "xlsx";
     path: string;
@@ -894,11 +1048,19 @@ declare module "flo:runtime" {
     "excel_create": FloExcelCreateInput;
     /** Edit cells in an existing XLSX workbook. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","assignments":[{"cell":"B2","value":4500},{"cell":"C2","value":"forecast"}]}. */
     "excel_edit_cells": FloExcelEditCellsInput;
+    /** Copy XLSX cell style to matching target cells without changing their values. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","source_cell":"B2","target_cells":["B3","B4","D2"]}. */
+    "excel_copy_cell_style": FloExcelCopyCellStyleInput;
+    /** Clear XLSX cell style from target cells without changing their values. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","cells":["B3","B4","Other!D2"]}. */
+    "excel_clear_cell_style": FloExcelClearCellStyleInput;
+    /** Copy XLSX row style, per-cell styles, merged cells, and row height to target rows without changing their values. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","source_row":{"row":2},"target_rows":[{"row":3},{"row":4}]}. */
+    "excel_copy_row": FloExcelCopyRowInput;
+    /** Copy XLSX column style, per-cell styles, merged cells, and column width to target columns without changing their values. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","source_column":{"column":"B"},"target_columns":[{"column":"C"},{"column":"D"}]}. */
+    "excel_copy_column": FloExcelCopyColumnInput;
     /** Insert or delete rows or columns in an XLSX workbook. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","operations":[{"kind":"insert_rows","index":3,"count":1},{"kind":"delete_columns","index":5,"count":1}]}. */
     "excel_edit_structure": FloExcelEditStructureInput;
     /** Increase an XLSX row height to fit wrapped content. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","row":4}. */
     "excel_auto_fit_row": FloExcelAutoFitRowInput;
-    /** Atomically apply workbook structure edits, cell assignments, and row auto-fit in one XLSX save. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","operations":[{"kind":"insert_rows","index":3,"count":1}],"assignments":[{"cell":"A3","value":"February"},{"cell":"B3","value":3900}],"auto_fit_rows":[3]}. */
+    /** Atomically apply workbook structure edits, cell assignments, row copies, column copies, style copies, and row auto-fit in one XLSX save. Example input: {"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","operations":[{"kind":"insert_rows","index":3,"count":1}],"assignments":[{"cell":"A3","value":"February"},{"cell":"B3","value":3900}],"row_copies":[{"source_row":{"row":2},"target_rows":[{"row":3}]}],"style_copies":[{"source_cell":"B2","target_cells":["B3"]}],"auto_fit_rows":[3]}. */
     "excel_apply_changes": FloExcelApplyChangesInput;
     /** Fetch remote media into the virtual workspace. Example input: {"media_id":"11111111-1111-1111-1111-111111111111","output_path":"session://imports/input.png"}. */
     "media_fetch": FloMediaFetchInput;
@@ -945,6 +1107,14 @@ declare module "flo:runtime" {
     "excel_create": FloExcelCreateOutput;
     /** Output returned by the `excel_edit_cells` runtime tool. */
     "excel_edit_cells": FloExcelEditCellsOutput;
+    /** Output returned by the `excel_copy_cell_style` runtime tool. */
+    "excel_copy_cell_style": FloExcelCopyCellStyleOutput;
+    /** Output returned by the `excel_clear_cell_style` runtime tool. */
+    "excel_clear_cell_style": FloExcelClearCellStyleOutput;
+    /** Output returned by the `excel_copy_row` runtime tool. */
+    "excel_copy_row": FloExcelCopyRowOutput;
+    /** Output returned by the `excel_copy_column` runtime tool. */
+    "excel_copy_column": FloExcelCopyColumnOutput;
     /** Output returned by the `excel_edit_structure` runtime tool. */
     "excel_edit_structure": FloExcelEditStructureOutput;
     /** Output returned by the `excel_auto_fit_row` runtime tool. */

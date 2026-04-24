@@ -7,17 +7,20 @@ instruction: |
 
   Use these tools:
   - `excel_edit_structure` to insert or delete rows or columns in an existing workbook.
-  - `excel_apply_changes` to atomically combine structure edits, cell updates, and row auto-fit in one workbook save.
+  - `excel_apply_changes` to atomically combine structure edits, cell updates, row copies, column copies, cell style copies, and row auto-fit in one workbook save.
 
   Example payloads:
   - `excel_edit_structure`: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","operations":[{"kind":"insert_rows","index":3,"count":1},{"kind":"delete_columns","index":5,"count":1}]}`
-  - `excel_apply_changes`: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","operations":[{"kind":"insert_rows","index":3,"count":1}],"assignments":[{"cell":"A3","value":"February"},{"cell":"B3","value":3900}],"auto_fit_rows":[3]}`
+  - `excel_apply_changes`: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","operations":[{"kind":"insert_rows","index":3,"count":1}],"assignments":[{"cell":"A3","value":"February"},{"cell":"B3","value":3900}],"row_copies":[{"source_row":{"row":2},"target_rows":[{"row":3}]}],"style_copies":[{"source_cell":"B2","target_cells":["B3"]}],"auto_fit_rows":[3]}`
+  - `excel_apply_changes` row copy: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","row_copies":[{"source_row":{"row":2},"target_rows":[{"row":3},{"row":4}]}]}`
+  - `excel_apply_changes` column copy: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","column_copies":[{"source_column":{"column":"B"},"target_columns":[{"column":"C"},{"column":"D"}]}]}`
 
   Important constraints:
   - `path` must be a VFS path and must end in `.xlsx`.
   - `excel_edit_structure` requires `operations`.
   - `excel_edit_structure.kind` must be one of `insert_rows`, `delete_rows`, `insert_columns`, or `delete_columns`.
-  - `excel_apply_changes` is the preferred tool when structure edits and cell updates must be saved together without an intermediate step.
+  - `excel_apply_changes` is the preferred tool when structure edits, cell updates, row copies, column copies, cell style copies, or row auto-fit must be saved together without an intermediate step.
+  - `row_copies` and `column_copies` also copy merged-cell ranges plus row height or column width, and they fail if a copied merge would overlap an existing target merge.
   - `excel_edit_structure` and `excel_apply_changes` fail if the workbook does not exist.
 tools:
   - excel_edit_structure

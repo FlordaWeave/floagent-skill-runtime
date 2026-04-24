@@ -8,21 +8,41 @@ instruction: |
   Use these tools:
   - `excel_create` to create a new workbook with initial cell values.
   - `excel_edit_cells` to update one or more cells in an existing workbook.
+  - `excel_copy_cell_style` to copy one cell style directly without changing target values.
+  - `excel_clear_cell_style` to clear formatting from one or more cells without changing their values.
+  - `excel_copy_row` to copy row style, per-cell styles, merged cells, and row height to target rows without changing values.
+  - `excel_copy_column` to copy column style, per-cell styles, merged cells, and column width to target columns without changing values.
   - `excel_auto_fit_row` to increase a row height so wrapped content is visible.
 
   Example payloads:
   - `excel_create`: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","assignments":[{"cell":"A1","value":"Month"},{"cell":"B1","value":"Spend"},{"cell":"A2","value":"January"},{"cell":"B2","value":4200}]}`
   - `excel_edit_cells`: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","assignments":[{"cell":"B2","value":4500},{"cell":"C2","value":"forecast"}]}`
+  - `excel_copy_cell_style`: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","source_cell":"B2","target_cells":["B3","B4","D2"]}`
+  - `excel_clear_cell_style`: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","cells":["B3","B4","D2"]}`
+  - `excel_copy_row`: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","source_row":{"row":2},"target_rows":[{"row":3},{"row":4}]}`
+  - `excel_copy_column`: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","source_column":{"column":"B"},"target_columns":[{"column":"C"},{"column":"D"}]}`
   - `excel_auto_fit_row`: `{"path":"task://spreadsheets/budget.xlsx","sheet":"Summary","row":4}`
 
   Important constraints:
   - `path` must be a VFS path and must end in `.xlsx`.
   - `excel_create` and `excel_edit_cells` require `assignments`, where each assignment has `cell` and optional `value`.
+  - `excel_copy_cell_style` requires `source_cell` with `target_cells`.
+  - `excel_clear_cell_style` requires `cells`.
+  - `excel_copy_row` requires `source_row` with `target_rows`, where each row ref is an object with `row` and optional `sheet`.
+  - `excel_copy_column` requires `source_column` with `target_columns`, where each column ref is an object with `column` and optional `sheet`.
+  - Use A1 notation for cell refs, 1-based row numbers for row refs, and Excel letters for column refs.
   - Use A1 notation for `assignments[].cell`.
   - `excel_create` fails if the workbook already exists.
   - `excel_edit_cells` fails if the workbook does not exist.
+  - `excel_copy_cell_style` copies only formatting; it does not change target cell values or formulas.
+  - `excel_clear_cell_style` resets the target cell style to the default workbook style; it does not change target cell values or formulas.
+  - `excel_copy_row` and `excel_copy_column` also copy aligned merged-cell ranges, and they fail if a copied merge would overlap an existing target merge.
   - `excel_auto_fit_row` adjusts row height only; it does not insert or delete rows or columns.
 tools:
   - excel_create
   - excel_edit_cells
+  - excel_copy_cell_style
+  - excel_clear_cell_style
+  - excel_copy_row
+  - excel_copy_column
   - excel_auto_fit_row
