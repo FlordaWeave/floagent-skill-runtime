@@ -13,6 +13,7 @@ The module exports these top-level helpers:
 - `vault`
 - `state`
 - `task`
+- `dispatcher`
 - `callTool`
 - `browser`
 
@@ -107,6 +108,6 @@ The Node preload shim supports:
 - `flo.task.emitEvent(...)`
 - browser helpers when `FLO_LOCAL_BROWSER=1`
 
-Other runtime-bound APIs intentionally fail in the local shim so tests do not accidentally depend on unsupported local behavior.
+Other runtime-bound APIs, including `flo.dispatcher.*`, intentionally fail in the local shim so tests do not accidentally depend on unsupported local behavior.
 
 Next: [Nested Tool Calls](nested-tool-calls.md)

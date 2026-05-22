@@ -10,6 +10,7 @@
 - [Vault](vault.md)
 - [State](state.md)
 - [Task Tool State](task-tool-state.md)
+- [Dispatcher](dispatcher.md)
 - [Browser Automation](browser-automation.md)
 - [Sub Agents](sub-agents.md)
 - [Other APIs](other-apis.md)

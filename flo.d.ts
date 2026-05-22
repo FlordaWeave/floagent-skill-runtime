@@ -246,6 +246,97 @@ declare module "flo:runtime" {
     if_revision?: string | null;
   }
 
+  type FloDispatcherStatus = "idle" | "leased" | "running" | "succeeded" | "failed";
+
+  interface FloDispatcherDefinition {
+    dispatcher_id: string;
+    created_at: string;
+    updated_at: string;
+  }
+
+  interface FloDispatcherSubjectState<TCursor = FloJsonValue, TMeta = FloJsonValue> {
+    dispatcher_id: string;
+    subject_key: string;
+    status: FloDispatcherStatus;
+    cursor?: TCursor;
+    meta?: TMeta;
+    next_due_at?: string;
+    lease_owner_id?: string;
+    lease_expires_at?: string;
+    attempt: number;
+    failure_count: number;
+    consecutive_timeouts: number;
+    last_error?: FloStructuredError;
+    last_started_at?: string;
+    last_finished_at?: string;
+    last_success_at?: string;
+    revision: number;
+    created_at: string;
+    updated_at: string;
+  }
+
+  interface FloDispatcherSyncSubject<TCursor = FloJsonValue, TMeta = FloJsonValue> {
+    subject_key: string;
+    cursor?: TCursor;
+    meta?: TMeta;
+    next_due_at?: string;
+  }
+
+  interface FloDispatcherSyncSubjectsRequest<TCursor = FloJsonValue, TMeta = FloJsonValue> {
+    dispatcher_id: string;
+    subjects: Array<FloDispatcherSyncSubject<TCursor, TMeta>>;
+  }
+
+  interface FloDispatcherSyncSubjectsResponse<TCursor = FloJsonValue, TMeta = FloJsonValue> {
+    dispatcher: FloDispatcherDefinition;
+    subjects: Array<FloDispatcherSubjectState<TCursor, TMeta>>;
+  }
+
+  interface FloDispatcherClaimDueSubjectsRequest {
+    dispatcher_id: string;
+    lease_ms: number;
+    limit?: number;
+  }
+
+  interface FloDispatcherClaimDueSubjectsResponse<TCursor = FloJsonValue, TMeta = FloJsonValue> {
+    subjects: Array<FloDispatcherSubjectState<TCursor, TMeta>>;
+  }
+
+  interface FloDispatcherCheckpointSubjectRequest<TCursor = FloJsonValue, TMeta = FloJsonValue> {
+    dispatcher_id: string;
+    subject_key: string;
+    revision: number;
+    cursor?: TCursor;
+    meta?: TMeta;
+    lease_ms?: number;
+  }
+
+  interface FloDispatcherCompleteSubjectRequest<TCursor = FloJsonValue, TMeta = FloJsonValue> {
+    dispatcher_id: string;
+    subject_key: string;
+    revision: number;
+    cursor?: TCursor;
+    meta?: TMeta;
+    next_due_at?: string;
+  }
+
+  interface FloDispatcherFailSubjectRequest<TCursor = FloJsonValue, TMeta = FloJsonValue> {
+    dispatcher_id: string;
+    subject_key: string;
+    revision: number;
+    error: FloStructuredError;
+    cursor?: TCursor;
+    meta?: TMeta;
+    next_due_at?: string;
+    retry_after_ms?: number;
+  }
+
+  interface FloDispatcherReleaseSubjectRequest {
+    dispatcher_id: string;
+    subject_key: string;
+    revision: number;
+  }
+
   type FloWorkerKind =
     | "extractor"
     | "matcher"
@@ -259,6 +350,7 @@ declare module "flo:runtime" {
     title: string;
     objective: string;
     input: FloJsonValue;
+    selected_skill_ids?: string[];
   }
 
   interface FloSpawnChildrenRequest {
@@ -1327,6 +1419,33 @@ declare module "flo:runtime" {
        */
       getBatchResults(request: FloGetBatchResultsRequest): Promise<FloGetBatchResultsResponse>;
     };
+    /** Claim, checkpoint, and settle per-subject dispatcher work for the current task. */
+    dispatcher: {
+      /** Add newly discovered subjects for a dispatcher without deleting prior state. */
+      syncSubjects<TCursor = FloJsonValue, TMeta = FloJsonValue>(
+        request: FloDispatcherSyncSubjectsRequest<TCursor, TMeta>,
+      ): Promise<FloDispatcherSyncSubjectsResponse<TCursor, TMeta>>;
+      /** Lease due or expired subjects for bounded processing. */
+      claimDueSubjects<TCursor = FloJsonValue, TMeta = FloJsonValue>(
+        request: FloDispatcherClaimDueSubjectsRequest,
+      ): Promise<FloDispatcherClaimDueSubjectsResponse<TCursor, TMeta>>;
+      /** Persist cursor or metadata progress for a live lease and mark it running. */
+      checkpointSubject<TCursor = FloJsonValue, TMeta = FloJsonValue>(
+        request: FloDispatcherCheckpointSubjectRequest<TCursor, TMeta>,
+      ): Promise<FloDispatcherSubjectState<TCursor, TMeta>>;
+      /** Mark a leased subject complete and optionally schedule the next due time. */
+      completeSubject<TCursor = FloJsonValue, TMeta = FloJsonValue>(
+        request: FloDispatcherCompleteSubjectRequest<TCursor, TMeta>,
+      ): Promise<FloDispatcherSubjectState<TCursor, TMeta>>;
+      /** Mark a leased subject failed with optional retry timing hints. */
+      failSubject<TCursor = FloJsonValue, TMeta = FloJsonValue>(
+        request: FloDispatcherFailSubjectRequest<TCursor, TMeta>,
+      ): Promise<FloDispatcherSubjectState<TCursor, TMeta>>;
+      /** Release a live lease without recording success or failure. */
+      releaseSubject(
+        request: FloDispatcherReleaseSubjectRequest,
+      ): Promise<FloDispatcherSubjectState>;
+    };
     /** Call a built-in or selected-skill tool through the runtime registry. */
     callTool<TToolId extends FloBuiltinToolId>(
       request: { tool_id: TToolId; input: FloBuiltinToolInputs[TToolId] },
@@ -1379,6 +1498,8 @@ declare module "flo:runtime" {
   export const state: FloRuntimeApi["state"];
   /** Durable task helpers exposed by the Flo runtime. */
   export const task: FloRuntimeApi["task"];
+  /** Dispatcher helpers exposed by the Flo runtime. */
+  export const dispatcher: FloRuntimeApi["dispatcher"];
   /** Tool invocation helper exposed by the Flo runtime. */
   export const callTool: FloRuntimeApi["callTool"];
   /** VFS-backed File helper exposed by the Flo runtime. */

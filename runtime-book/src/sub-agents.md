@@ -14,6 +14,7 @@ const spawned = await flo.task.spawnChildren({
       title: "Extract invoice fields",
       objective: "Extract invoice number and total from the document",
       input: { document_id: input.document_id },
+      selected_skill_ids: ["skill.ocr", "skill.invoice-parser"],
     },
     {
       worker_kind: "classifier",
@@ -31,6 +32,9 @@ Each child defines:
 - `title`
 - `objective`
 - `input`
+- optional `selected_skill_ids`
+
+Omit `selected_skill_ids` to keep the child task's selected skill list empty.
 
 ## Wait For Completion
 

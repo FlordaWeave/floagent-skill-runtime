@@ -1578,9 +1578,17 @@ globalThis.__flo_runtime = {
     emitEvent: async (request: unknown) => {
       console.log(request);
     },
-    spawnChildren: async () => unsupported("flo.task.spawnChildren"),
+    spawnChildren: async (_request: unknown) => unsupported("flo.task.spawnChildren"),
     waitForBatch: async () => unsupported("flo.task.waitForBatch"),
     getBatchResults: async () => unsupported("flo.task.getBatchResults"),
+  },
+  dispatcher: {
+    syncSubjects: async (_request: unknown) => unsupported("flo.dispatcher.syncSubjects"),
+    claimDueSubjects: async (_request: unknown) => unsupported("flo.dispatcher.claimDueSubjects"),
+    checkpointSubject: async (_request: unknown) => unsupported("flo.dispatcher.checkpointSubject"),
+    completeSubject: async (_request: unknown) => unsupported("flo.dispatcher.completeSubject"),
+    failSubject: async (_request: unknown) => unsupported("flo.dispatcher.failSubject"),
+    releaseSubject: async (_request: unknown) => unsupported("flo.dispatcher.releaseSubject"),
   },
   callTool: async () => unsupported("flo.callTool"),
   file: createVfsFile,
@@ -1604,6 +1612,7 @@ export const time = runtime.time;
 export const vault = runtime.vault;
 export const state = runtime.state;
 export const task = runtime.task;
+export const dispatcher = runtime.dispatcher;
 export const callTool = runtime.callTool;
 export const file = runtime.file;
 export const browser = runtime.browser;

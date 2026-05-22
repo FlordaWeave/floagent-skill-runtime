@@ -4,6 +4,7 @@ Flo discovers tools and skills by file name:
 
 - `**/*.tool.yaml` defines one tool
 - `**/*.skill.yaml` defines one skill
+- `**/*.schedule.yaml` defines one bundle-managed schedule
 
 `SKILL.md` discovery is not supported.
 
@@ -162,6 +163,54 @@ During `/call` execution:
 - the called tool may always call itself
 - the called tool may also call globally available tools and tools listed in that tool manifest's own `script_tools`
 - helper tools still remain hidden unless they are global, reachable through the selected skill set, or declared in the direct-call tool's own `script_tools`
+
+## Schedule Manifest Shape
+
+Schedule manifests are bundle-scoped resources. They are not owned by a skill.
+
+Required fields:
+
+- `schedule_id`
+- `profile_channel`
+- `profile_external_user_id`
+- `user_message`
+- exactly one of `trigger` or `cron_expression`
+- `timezone`
+
+Optional fields:
+
+- `context`
+- `target_agent_override`
+- `required_labels`
+- `selected_skill_ids`
+- `skip_skill_selection`
+- `enabled`
+
+Example:
+
+```yaml
+schedule_id: morning_digest
+profile_channel: wecom
+profile_external_user_id: alice
+user_message: Send the morning digest.
+selected_skill_ids:
+  - skill.digest
+trigger:
+  kind: recurring
+  times_of_day:
+    - hour: 9
+      minute: 0
+timezone: America/Toronto
+enabled: true
+```
+
+Behavior:
+
+- Flo reconciles schedule manifests when a skill bundle is pushed and when `backend-service` starts with persisted bundle slots.
+- Flo resolves `profile_channel` plus `profile_external_user_id` through the runtime alias table.
+- If the alias does not exist, Flo auto-creates a normal non-admin user profile and records the alias.
+- If a schedule manifest is removed, Flo deletes the managed schedule but does not delete the profile or alias it created.
+- Managed schedules are read-only in the admin UI except for `Run now`.
 
 ## State and Vault Declarations
 
