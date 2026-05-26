@@ -96,11 +96,11 @@ execution:
   entrypoint: run
 ```
 
-That makes `publish_report` callable from `/call publish_report`, while `send_media_attachment` stays nested-only unless it separately declares `direct_call: true`.
+That makes `publish_report` callable from `/call publish_report`, while `send_media_attachment` stays nested-only unless it separately declares `direct_call: true`. The same `direct_call: true` eligibility also governs typed direct-call invocations from external apps.
 
 ## Direct-Call Visibility Rules
 
-`direct_call: true` answers one question only: whether a tool can be invoked explicitly through `/call`.
+`direct_call: true` answers one question only: whether a tool can be invoked explicitly through `/call` or through the external-app direct-call API.
 
 It does not:
 

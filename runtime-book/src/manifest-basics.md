@@ -159,6 +159,7 @@ During normal execution:
 During `/call` execution:
 
 - `/call` lists tools whose manifests set `direct_call: true`
+- the external-app direct-call API uses the same `direct_call: true` gate
 - running `/call <tool_id>` preserves the current selected-skill context for nested tool access
 - the called tool may always call itself
 - the called tool may also call globally available tools and tools listed in that tool manifest's own `script_tools`
