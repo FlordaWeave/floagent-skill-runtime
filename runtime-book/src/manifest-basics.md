@@ -23,6 +23,7 @@ Optional fields include:
 - `retry_policy`
 - `vault`
 - `state`
+- `requires_permissions`
 - `direct_call`
 - `script_tools`
 
@@ -58,6 +59,10 @@ Tool field behavior:
   - declares helper tool ids callable from this tool through `flo.callTool(...)`
   - these helpers are not automatically exposed to the LLM
   - these helpers are not listed by `/call` unless the helper tool also sets `direct_call: true`
+- `requires_permissions`
+  - defaults to `[]`
+  - declares permission ids required before the tool is usable
+  - the caller must have all listed permissions
 
 ## Script Execution
 
@@ -90,6 +95,7 @@ Optional fields include:
 - `tool_definitions`
 - `requires_skills`
 - `requires_labels`
+- `requires_permissions`
 
 Example:
 
@@ -138,6 +144,10 @@ Field behavior:
 - `tool_definitions`
   - declares inline tool manifests owned by the skill
   - inline tools are available to the selected skill without being repeated in `tools` or `script_tools`
+- `requires_permissions`
+  - defaults to `[]`
+  - declares permission ids required before the skill is visible or selectable
+  - the caller must have all listed permissions
 
 Authoring rules:
 
@@ -165,6 +175,68 @@ During `/call` execution:
 - the called tool may also call globally available tools and tools listed in that tool manifest's own `script_tools`
 - helper tools still remain hidden unless they are global, reachable through the selected skill set, or declared in the direct-call tool's own `script_tools`
 
+## Permission Catalogs
+
+Permissions are bundle-scoped. A skill bundle may include at most one `*.permissions.yaml` file.
+
+Use the catalog file to define the permission ids that skills and tools reference from `requires_permissions`.
+
+Example:
+
+```yaml
+catalog_id: admin
+version: v1
+groups:
+  - group_id: admin
+    name: Admin
+    description: Administrative actions
+    permissions:
+      - permission_id: admin.roles.write
+        name: Manage roles
+        description: Create, update, and delete roles
+      - permission_id: admin.permissions.read
+        name: View permission catalog
+```
+
+Catalog fields:
+
+- `catalog_id`
+  - optional stable identifier for the catalog
+- `version`
+  - optional catalog version string
+- `groups`
+  - required list of permission groups
+- `groups[].group_id`
+  - required unique group id
+- `groups[].name`
+  - required display name
+- `groups[].description`
+  - optional description
+- `groups[].permissions`
+  - list of permissions in the group
+- `groups[].permissions[].permission_id`
+  - required unique permission id used by `requires_permissions`
+- `groups[].permissions[].name`
+  - required display name
+- `groups[].permissions[].description`
+  - optional description
+
+Authoring rules:
+
+- define each permission id once in the bundle catalog
+- use exact permission ids in `requires_permissions`
+- permission ids, group ids, and names must be non-empty
+- leading or trailing whitespace is rejected
+- duplicate `group_id`, `permission_id`, or `requires_permissions` entries are rejected
+- if a bundle includes more than one `*.permissions.yaml` file, loading fails
+
+Runtime behavior:
+
+- a skill with `requires_permissions` is hidden unless the caller has all listed permissions
+- a tool with `requires_permissions` is unavailable unless the caller has all listed permissions
+- profile permission assignment is validated against the active bundle slot's catalog
+- if a profile is granted a permission id that is not defined in the active catalog, the update is rejected
+
 ## Schedule Manifest Shape
 
 Schedule manifests are bundle-scoped resources. They are not owned by a skill.
@@ -186,6 +258,7 @@ Optional fields:
 - `selected_skill_ids`
 - `skip_skill_selection`
 - `enabled`
+- `cron_expression`
 
 Example:
 
@@ -212,6 +285,71 @@ Behavior:
 - If the alias does not exist, Flo auto-creates a normal non-admin user profile and records the alias.
 - If a schedule manifest is removed, Flo deletes the managed schedule but does not delete the profile or alias it created.
 - Managed schedules are read-only in the admin UI except for `Run now`.
+
+## Schedule Trigger Shape
+
+When using `trigger`, the supported shape is:
+
+```yaml
+trigger:
+  kind: recurring
+```
+
+Recurring triggers support these fields:
+
+- `minutes_interval`
+  - optional integer in `1..=59`
+  - runs every N minutes
+- `hours_interval`
+  - optional integer in `1..=23`
+  - runs every N hours
+- `times_of_day`
+  - optional list of wall-clock times
+  - each item has `hour` in `0..=23` and `minute` in `0..=59`
+- `days_of_week`
+  - optional list of weekdays using `0..=6`
+  - `0` is Sunday, `6` is Saturday
+
+Validation rules:
+
+- define exactly one of `minutes_interval`, `hours_interval`, or `times_of_day`
+- `days_of_week` is a filter and may be combined with any one of the cadence options above
+- `times_of_day` entries must not contain duplicates
+- in v1, all `times_of_day` entries must share the same `minute`
+- `days_of_week` must not contain duplicates
+
+Examples:
+
+Every 15 minutes:
+
+```yaml
+trigger:
+  kind: recurring
+  minutes_interval: 15
+```
+
+Every 6 hours:
+
+```yaml
+trigger:
+  kind: recurring
+  hours_interval: 6
+```
+
+At 09:00 and 17:00 every weekday:
+
+```yaml
+trigger:
+  kind: recurring
+  times_of_day:
+    - hour: 9
+      minute: 0
+    - hour: 17
+      minute: 0
+  days_of_week: [1, 2, 3, 4, 5]
+```
+
+Use `cron_expression` instead of `trigger` when you need a schedule shape that is not covered by the recurring trigger fields.
 
 ## State and Vault Declarations
 
