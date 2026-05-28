@@ -1352,6 +1352,8 @@ declare module "flo:runtime" {
   interface FloRuntimeApi {
     /** Pause the script for the requested number of milliseconds. */
     sleep(ms: number): Promise<void>;
+    /** Read one admin-managed plain-text runtime config value by key. */
+    getRuntimeConfig(key: string): Promise<string | undefined>;
     time: {
       /** Format a Unix timestamp with the runtime's supported date format tokens. */
       formatUnixTimestamp(timestamp: number, format: string, timezone?: string): string;
@@ -1490,6 +1492,8 @@ declare module "flo:runtime" {
 
   /** Pause the script for the requested number of milliseconds. */
   export const sleep: FloRuntimeApi["sleep"];
+  /** Runtime config helper exposed by the Flo runtime. */
+  export const getRuntimeConfig: FloRuntimeApi["getRuntimeConfig"];
   /** Date and time helpers exposed by the Flo runtime. */
   export const time: FloRuntimeApi["time"];
   /** Vault secret helpers exposed by the Flo runtime. */

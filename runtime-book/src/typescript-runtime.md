@@ -9,6 +9,7 @@ import * as flo from "flo:runtime";
 The module exports these top-level helpers:
 
 - `sleep`
+- `getRuntimeConfig`
 - `time`
 - `vault`
 - `state`
@@ -96,11 +97,22 @@ Use `flo.time.formatUnixTimestamp(...)` when you need stable date formatting:
 const formatted = flo.time.formatUnixTimestamp(1_700_000_000, "YYYY-MM-DD HH:mm:ss", "UTC");
 ```
 
+## Admin-Managed Envs
+
+Use `await flo.getRuntimeConfig(key)` to read one admin-managed plain-text runtime config value:
+
+```ts
+const apiBase = await flo.getRuntimeConfig("FLO_API_BASE");
+```
+
+This helper does not require a manifest entry, resolves to `undefined` when the key is not configured, and is intended for non-secret settings. Use `flo.vault.get(...)` for secrets.
+
 ## Local Shim Notes
 
 The Node preload shim supports:
 
 - `flo.sleep(...)`
+- `flo.getRuntimeConfig(...)` with `FLO_MOCKS_FILE`
 - `flo.time.formatUnixTimestamp(...)`
 - `flo.vault.get(...)` with `FLO_MOCKS_FILE`
 - `flo.state.*` with local state binding fixtures

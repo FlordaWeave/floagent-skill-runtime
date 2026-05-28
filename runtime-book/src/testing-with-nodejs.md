@@ -13,6 +13,7 @@ It is useful for:
 - module loading and import resolution
 - `flo.d.ts`-backed local TypeScript authoring
 - `flo.sleep(...)`
+- `flo.getRuntimeConfig(...)` with mock data
 - `flo.time.formatUnixTimestamp(...)`
 - `flo.vault.get(...)` with mock data
 - `flo.state.*` with local binding fixtures
@@ -114,6 +115,16 @@ Use `FLO_MOCKS_FILE` to provide mock vault values:
         "api-token": "shared-secret"
       }
     }
+  }
+}
+```
+
+`FLO_MOCKS_FILE` can also define plain runtime config values for `flo.getRuntimeConfig(...)`:
+
+```json
+{
+  "env": {
+    "FLO_API_BASE": "https://api.example.test"
   }
 }
 ```

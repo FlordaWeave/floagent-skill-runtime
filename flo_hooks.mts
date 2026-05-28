@@ -779,6 +779,7 @@ let loadedVaultMocks = false;
 let cachedMockFile: {
   filePath?: string;
   raw: Record<string, unknown>;
+  env: Record<string, string>;
   vault: { profile: Record<string, unknown>; shared: Record<string, Record<string, unknown>> };
   stateBindings: LocalStateBinding[];
   state: LocalStateScopes;
@@ -932,6 +933,23 @@ const validateStateBindings = (value: unknown): LocalStateBinding[] => {
   });
 };
 
+const validateEnvMocks = (value: unknown): Record<string, string> => {
+  if (value === undefined) {
+    return {};
+  }
+  if (!isRecord(value)) {
+    throw new Error("FLO_MOCKS_FILE `env` must be an object when provided");
+  }
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entryValue]) => {
+      if (typeof entryValue !== "string") {
+        throw new Error(`FLO_MOCKS_FILE env.${key} must be a string`);
+      }
+      return [key, entryValue];
+    }),
+  );
+};
+
 const loadMockFile = () => {
   if (loadedMockFile) {
     return cachedMockFile;
@@ -942,6 +960,7 @@ const loadMockFile = () => {
   if (!file) {
     cachedMockFile = {
       raw: {},
+      env: {},
       vault: { profile: {}, shared: {} },
       stateBindings: [],
       state: emptyLocalStateScopes(),
@@ -985,11 +1004,13 @@ const loadMockFile = () => {
     normalizedShared[scopeId] = scopeValue;
   }
 
+  const env = validateEnvMocks(parsed.env);
   const state = validateStateScopes(parsed.state);
   const stateBindings = validateStateBindings(parsed.state_bindings);
   cachedMockFile = {
     filePath: resolvedPath,
     raw: parsed,
+    env,
     vault: { profile, shared: normalizedShared },
     stateBindings,
     state,
@@ -1006,6 +1027,7 @@ const persistMockFile = () => {
     profile: mockFile.vault.profile,
     shared: mockFile.vault.shared,
   };
+  mockFile.raw.env = mockFile.env;
   mockFile.raw.state_bindings = mockFile.stateBindings;
   mockFile.raw.state = mockFile.state;
   fs.writeFileSync(mockFile.filePath, `${JSON.stringify(mockFile.raw, null, 2)}\n`, "utf8");
@@ -1547,11 +1569,23 @@ const vaultGet = async (request: any) => {
   return String(sharedScope[key]);
 };
 
+const getRuntimeConfig = async (key: unknown): Promise<string | undefined> => {
+  if (typeof key !== "string" || key.trim() === "") {
+    throw new TypeError("flo.getRuntimeConfig requires non-empty `key`");
+  }
+  const normalizedKey = key.trim();
+  const mockFile = loadMockFile();
+  return Object.prototype.hasOwnProperty.call(mockFile.env, normalizedKey)
+    ? mockFile.env[normalizedKey]
+    : undefined;
+};
+
 globalThis.__flo_runtime = {
   sleep: async (ms: number) =>
     new Promise<void>((resolve) => {
       setTimeout(resolve, ms);
     }),
+  getRuntimeConfig,
   time: {
     formatUnixTimestamp,
   },
@@ -1608,6 +1642,7 @@ if (!runtime) {
   throw new Error("flo:runtime is unavailable because the local Node Flo hook was not installed");
 }
 export const sleep = runtime.sleep;
+export const getRuntimeConfig = runtime.getRuntimeConfig;
 export const time = runtime.time;
 export const vault = runtime.vault;
 export const state = runtime.state;
