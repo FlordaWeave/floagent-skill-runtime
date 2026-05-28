@@ -35,6 +35,27 @@ const context = await flo.task.getContext<{
 }>();
 ```
 
+## `flo.task.getProfile()`
+
+Read the current runtime profile metadata for the tool caller:
+
+```ts
+const profile = await flo.task.getProfile();
+const profileId = profile.profile_id;
+const displayName = profile.display_name;
+```
+
+The returned object includes:
+
+- `profile_id`
+- `profile_kind`
+- `permissions`
+- optional `display_name`
+
+In the local Node preload shim, `profile_id` defaults to `local-node-profile` and can be
+overridden with `FLO_LOCAL_PROFILE_ID`. `display_name` can be set with
+`FLO_LOCAL_PROFILE_DISPLAY_NAME`.
+
 ## `flo.task.limits`
 
 Inspect runtime task-orchestration limits:

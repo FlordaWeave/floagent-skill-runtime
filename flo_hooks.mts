@@ -1534,6 +1534,13 @@ const taskToolStatePut = async (request: unknown) => {
   );
 };
 
+const taskProfileGet = async () => ({
+  profile_id: process.env.FLO_LOCAL_PROFILE_ID?.trim() || "local-node-profile",
+  profile_kind: "user",
+  permissions: [],
+  display_name: process.env.FLO_LOCAL_PROFILE_DISPLAY_NAME?.trim() || undefined,
+});
+
 const vaultGet = async (request: any) => {
   if (!request || typeof request !== "object" || Array.isArray(request)) {
     throw new TypeError("flo.vault.get requires an object request");
@@ -1608,6 +1615,7 @@ globalThis.__flo_runtime = {
     putState: taskStatePut,
     getToolState: taskToolStateGet,
     putToolState: taskToolStatePut,
+    getProfile: taskProfileGet,
     getContext: async () => taskContext(),
     emitEvent: async (request: unknown) => {
       console.log(request);

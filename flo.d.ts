@@ -117,6 +117,15 @@ declare module "flo:runtime" {
     [key: string]: FloJsonValue | FloTaskResumePayload | undefined;
   }
 
+  type FloProfileKind = "user" | "builtin";
+
+  interface FloTaskProfile {
+    profile_id: string;
+    profile_kind: FloProfileKind;
+    permissions: string[];
+    display_name?: string;
+  }
+
   interface FloFileOptions {
     name?: string;
     type?: string;
@@ -1396,6 +1405,8 @@ declare module "flo:runtime" {
       putToolState<T = FloJsonValue>(
         request: FloTaskPutToolStateRequest<T>,
       ): Promise<FloStateWriteResult<T>>;
+      /** Return the current runtime profile metadata for the tool caller. */
+      getProfile(): Promise<FloTaskProfile>;
       /** Return the current durable task context, including resume payloads when present. */
       getContext<TContext = FloTaskContext>(): Promise<TContext>;
       /** Append a structured event to the current task timeline. */

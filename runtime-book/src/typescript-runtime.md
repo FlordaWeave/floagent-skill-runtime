@@ -87,6 +87,16 @@ const context = await flo.task.getContext<Context>();
 
 The context may include resume data after a suspension flow. When a task resumes, the runtime re-enters the script from its entrypoint instead of restoring the JavaScript stack.
 
+## Current Profile
+
+Use `flo.task.getProfile()` to read the current runtime profile metadata:
+
+```ts
+const { profile_id, display_name } = await flo.task.getProfile();
+```
+
+The response also includes `profile_kind` and `permissions`. `display_name` is optional.
+
 ## Time and Sleep
 
 Use `flo.sleep(ms)` to pause a script without blocking the runtime thread.
@@ -116,9 +126,13 @@ The Node preload shim supports:
 - `flo.time.formatUnixTimestamp(...)`
 - `flo.vault.get(...)` with `FLO_MOCKS_FILE`
 - `flo.state.*` with local state binding fixtures
+- `flo.task.getProfile()`
 - `flo.task.getContext(...)`
 - `flo.task.emitEvent(...)`
 - browser helpers when `FLO_LOCAL_BROWSER=1`
+
+For `flo.task.getProfile()`, the shim uses `local-node-profile` by default and supports
+`FLO_LOCAL_PROFILE_ID` plus `FLO_LOCAL_PROFILE_DISPLAY_NAME` overrides.
 
 Other runtime-bound APIs, including `flo.dispatcher.*`, intentionally fail in the local shim so tests do not accidentally depend on unsupported local behavior.
 
