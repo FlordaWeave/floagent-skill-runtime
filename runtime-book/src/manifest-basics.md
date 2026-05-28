@@ -53,7 +53,8 @@ Tool field behavior:
 - `direct_call`
   - defaults to `false`
   - when `true`, the tool may be invoked explicitly through `/call <tool_id>`
-  - this affects `/call` discoverability only; it does not automatically expose helper tools
+  - it also makes the tool reachable from `flo.callTool(...)` even when the tool is outside the current selected-skill tool set
+  - it does not automatically expose helper tools to the LLM
 - `script_tools`
   - defaults to `[]`
   - declares helper tool ids callable from this tool through `flo.callTool(...)`
@@ -163,7 +164,7 @@ Flo has separate visibility rules for normal execution and explicit `/call` usag
 During normal execution:
 
 - the LLM sees globally available tools plus tools listed in the selected skills' `tools`
-- the selected skills' scripts can call globally available tools plus tools listed in the selected skills' `tools` and `script_tools`
+- the selected skills' scripts can call globally available tools, tools listed in the selected skills' `tools` and `script_tools`, and any tool whose manifest sets `direct_call: true`
 - inline tools from `tool_definitions` are available to the owning skill without being repeated elsewhere
 
 During `/call` execution:

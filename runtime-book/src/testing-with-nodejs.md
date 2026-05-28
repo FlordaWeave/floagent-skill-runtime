@@ -121,11 +121,9 @@ Use `FLO_MOCKS_FILE` to provide mock vault values:
 
 `FLO_MOCKS_FILE` can also define plain runtime config values for `flo.getRuntimeConfig(...)`.
 
-The current mock-file schema still uses an `"env"` object for these values:
-
 ```json
 {
-  "env": {
+  "runtime_config": {
     "FLO_API_BASE": "https://api.example.test"
   }
 }

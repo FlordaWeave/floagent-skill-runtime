@@ -100,7 +100,7 @@ That makes `publish_report` callable from `/call publish_report`, while `send_me
 
 ## Direct-Call Visibility Rules
 
-`direct_call: true` answers one question only: whether a tool can be invoked explicitly through `/call` or through the external-app direct-call API.
+`direct_call: true` controls two runtime behaviors: whether a tool can be invoked explicitly through `/call` or the external-app direct-call API, and whether `flo.callTool(...)` may reach that tool outside the current selected-skill tool set.
 
 It does not:
 
@@ -112,8 +112,9 @@ In practice:
 
 - `tools` controls what the execution-stage LLM can call for a selected skill
 - `script_tools` controls helper access from `flo.callTool(...)` without exposing those helpers to the LLM
-- `direct_call: true` controls whether `/call <tool_id>` is allowed
-- a helper used from a direct-call tool still needs to be global, available through the current selected skills, or declared in the direct-call tool's own `script_tools`
+- `direct_call: true` controls whether `/call <tool_id>` is allowed and also makes that tool reachable from `flo.callTool(...)` even when it is outside the current selected-skill tool set
+- a helper used from a direct-call tool still needs to be global, available through the current selected skills, declared in the direct-call tool's own `script_tools`, or independently marked `direct_call: true`
+- profile permission checks still apply to nested calls into `direct_call: true` tools
 
 ## Error Handling Pattern
 

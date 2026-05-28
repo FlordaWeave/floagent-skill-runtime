@@ -779,7 +779,7 @@ let loadedVaultMocks = false;
 let cachedMockFile: {
   filePath?: string;
   raw: Record<string, unknown>;
-  env: Record<string, string>;
+  runtimeConfig: Record<string, string>;
   vault: { profile: Record<string, unknown>; shared: Record<string, Record<string, unknown>> };
   stateBindings: LocalStateBinding[];
   state: LocalStateScopes;
@@ -933,17 +933,17 @@ const validateStateBindings = (value: unknown): LocalStateBinding[] => {
   });
 };
 
-const validateEnvMocks = (value: unknown): Record<string, string> => {
+const validateRuntimeConfigMocks = (value: unknown): Record<string, string> => {
   if (value === undefined) {
     return {};
   }
   if (!isRecord(value)) {
-    throw new Error("FLO_MOCKS_FILE `env` must be an object when provided");
+    throw new Error("FLO_MOCKS_FILE `runtime_config` must be an object when provided");
   }
   return Object.fromEntries(
     Object.entries(value).map(([key, entryValue]) => {
       if (typeof entryValue !== "string") {
-        throw new Error(`FLO_MOCKS_FILE env.${key} must be a string`);
+        throw new Error(`FLO_MOCKS_FILE runtime_config.${key} must be a string`);
       }
       return [key, entryValue];
     }),
@@ -960,7 +960,7 @@ const loadMockFile = () => {
   if (!file) {
     cachedMockFile = {
       raw: {},
-      env: {},
+      runtimeConfig: {},
       vault: { profile: {}, shared: {} },
       stateBindings: [],
       state: emptyLocalStateScopes(),
@@ -1004,13 +1004,13 @@ const loadMockFile = () => {
     normalizedShared[scopeId] = scopeValue;
   }
 
-  const env = validateEnvMocks(parsed.env);
+  const runtimeConfig = validateRuntimeConfigMocks(parsed.runtime_config);
   const state = validateStateScopes(parsed.state);
   const stateBindings = validateStateBindings(parsed.state_bindings);
   cachedMockFile = {
     filePath: resolvedPath,
     raw: parsed,
-    env,
+    runtimeConfig,
     vault: { profile, shared: normalizedShared },
     stateBindings,
     state,
@@ -1027,7 +1027,7 @@ const persistMockFile = () => {
     profile: mockFile.vault.profile,
     shared: mockFile.vault.shared,
   };
-  mockFile.raw.env = mockFile.env;
+  mockFile.raw.runtime_config = mockFile.runtimeConfig;
   mockFile.raw.state_bindings = mockFile.stateBindings;
   mockFile.raw.state = mockFile.state;
   fs.writeFileSync(mockFile.filePath, `${JSON.stringify(mockFile.raw, null, 2)}\n`, "utf8");
@@ -1575,8 +1575,8 @@ const getRuntimeConfig = async (key: unknown): Promise<string | undefined> => {
   }
   const normalizedKey = key.trim();
   const mockFile = loadMockFile();
-  return Object.prototype.hasOwnProperty.call(mockFile.env, normalizedKey)
-    ? mockFile.env[normalizedKey]
+  return Object.prototype.hasOwnProperty.call(mockFile.runtimeConfig, normalizedKey)
+    ? mockFile.runtimeConfig[normalizedKey]
     : undefined;
 };
 
