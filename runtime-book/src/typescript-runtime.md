@@ -97,7 +97,7 @@ Use `flo.time.formatUnixTimestamp(...)` when you need stable date formatting:
 const formatted = flo.time.formatUnixTimestamp(1_700_000_000, "YYYY-MM-DD HH:mm:ss", "UTC");
 ```
 
-## Admin-Managed Envs
+## Admin-Managed Runtime Config
 
 Use `await flo.getRuntimeConfig(key)` to read one admin-managed plain-text runtime config value:
 
@@ -105,7 +105,7 @@ Use `await flo.getRuntimeConfig(key)` to read one admin-managed plain-text runti
 const apiBase = await flo.getRuntimeConfig("FLO_API_BASE");
 ```
 
-This helper does not require a manifest entry, resolves to `undefined` when the key is not configured, and is intended for non-secret settings. Use `flo.vault.get(...)` for secrets.
+This helper does not require a manifest entry, resolves to `undefined` when the key is not configured, and is intended for non-secret settings that admins manage centrally. Use `flo.vault.get(...)` for secrets.
 
 ## Local Shim Notes
 

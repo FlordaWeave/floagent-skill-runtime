@@ -119,7 +119,9 @@ Use `FLO_MOCKS_FILE` to provide mock vault values:
 }
 ```
 
-`FLO_MOCKS_FILE` can also define plain runtime config values for `flo.getRuntimeConfig(...)`:
+`FLO_MOCKS_FILE` can also define plain runtime config values for `flo.getRuntimeConfig(...)`.
+
+The current mock-file schema still uses an `"env"` object for these values:
 
 ```json
 {
