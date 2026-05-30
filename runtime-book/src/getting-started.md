@@ -12,14 +12,24 @@ The checked-in type declarations live in [`flo.d.ts`](https://github.com/FlordaW
 
 1. Write or update a tool manifest such as `my_tool.tool.yaml`.
 2. Write the script inline with `execution.script` or in a file with `execution.script_file`.
-3. Use `flo.d.ts` for editor autocomplete and type checking.
-4. Use the repo-root preload shim for local Node-based smoke tests:
+3. If you need bundle-wide execution guidance, add a single `*.prompts.yaml` file such as `runtime.prompts.yaml`.
+4. Use `flo.d.ts` for editor autocomplete and type checking.
+5. Use the repo-root preload shim for local Node-based smoke tests:
 
 ```bash
 node --import=./flo_hooks.mts path/to/script.mts
 ```
 
 The preload shim can invoke an exported `__flo_main__()` for local testing. It is a development aid, not a full runtime replica.
+
+Bundle-level prompt manifest example:
+
+```yaml
+execution:
+  preamble: |
+    You are a slot-scoped runtime.
+    Keep responses concrete and concise.
+```
 
 For a full local testing workflow, see [Testing With Node.js](testing-with-nodejs.md).
 

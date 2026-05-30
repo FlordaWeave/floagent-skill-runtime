@@ -5,6 +5,7 @@ Flo discovers tools and skills by file name:
 - `**/*.tool.yaml` defines one tool
 - `**/*.skill.yaml` defines one skill
 - `**/*.schedule.yaml` defines one bundle-managed schedule
+- `**/*.prompts.yaml` defines one bundle-managed runtime prompt manifest
 
 `SKILL.md` discovery is not supported.
 
@@ -237,6 +238,39 @@ Runtime behavior:
 - a tool with `requires_permissions` is unavailable unless the caller has all listed permissions
 - profile permission assignment is validated against the active bundle slot's catalog
 - if a profile is granted a permission id that is not defined in the active catalog, the update is rejected
+
+## Runtime Prompt Manifest Shape
+
+Runtime prompt manifests are bundle-scoped resources. They are not owned by a skill.
+
+Flo loads at most one `*.prompts.yaml` file from a bundle. If more than one is present, bundle loading fails.
+
+Required fields:
+
+- `execution.preamble`
+
+Example:
+
+```yaml
+execution:
+  preamble: |
+    You are a slot-scoped runtime.
+    Keep responses concrete and concise.
+```
+
+Field behavior:
+
+- `execution.preamble`
+  - required non-empty string
+  - prepended to the runtime's configured execution-stage prompt
+  - if the runtime execution prompt is empty, the preamble is used by itself
+
+Authoring rules:
+
+- use this manifest for bundle-wide execution guidance that should apply regardless of which skills are selected
+- keep it focused on durable execution behavior, not one-off task content
+- unknown top-level fields are rejected
+- the current manifest shape is intentionally narrow; today only `execution.preamble` is supported
 
 ## Schedule Manifest Shape
 
