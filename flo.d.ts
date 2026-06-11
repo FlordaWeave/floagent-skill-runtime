@@ -107,6 +107,10 @@ declare module "flo:runtime" {
 
   interface FloTaskResumePayload {
     batch_id?: string;
+    kind?: string;
+    user_message?: string;
+    checkpoint?: FloJsonValue;
+    browser_resume_payload?: FloJsonValue;
     [key: string]: FloJsonValue | undefined;
   }
 
@@ -230,6 +234,17 @@ declare module "flo:runtime" {
     message?: string;
     level?: FloTaskEventLevel;
     payload?: unknown;
+  }
+
+  interface FloWaitForUserMessageRequest {
+    user_message: string;
+    resume_schema?: { [key: string]: FloJsonValue };
+    resume_payload?: FloJsonValue;
+  }
+
+  interface FloWaitForUserMessageResponse {
+    user_message: string;
+    resume_payload?: FloJsonValue;
   }
 
   interface FloTaskGetToolStateRequest {
@@ -431,17 +446,7 @@ declare module "flo:runtime" {
     json<T = unknown>(): Promise<T>;
   }
 
-  interface FloBrowserRequiredCheck {
-    kind: "url_not_matches" | "selector_present" | "selector_absent";
-    value: string;
-    timeout_ms?: number;
-    reason_code?: string;
-    user_message?: string;
-  }
-
-  interface FloBrowserSessionOptions {
-    required_checks?: FloBrowserRequiredCheck[];
-  }
+  interface FloBrowserSessionOptions {}
 
   interface FloBrowserGotoCommand {
     type: "goto";
@@ -1424,6 +1429,17 @@ declare module "flo:runtime" {
       waitForBatch(
         request: FloWaitForBatchRequest,
       ): Promise<FloGetBatchResultsResponse>;
+      /**
+       * Suspend the current task until a later user message resumes it.
+       *
+       * The runtime re-enters the same script after resume; it does not preserve the JS stack.
+       * Persist any script progress needed after resume with `putToolState` for tool-owned
+       * checkpoints, or `putState` when later tools in the same task need to share that state,
+       * before calling this.
+       */
+      waitForUserMessage(
+        request: FloWaitForUserMessageRequest,
+      ): Promise<FloWaitForUserMessageResponse>;
       /**
        * Return results for a terminal child batch.
        *

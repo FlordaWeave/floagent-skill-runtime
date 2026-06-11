@@ -641,34 +641,27 @@ const normalizeBrowserValueResponse = (response: any) => {
   return normalized;
 };
 
-const browserRun = async (command: unknown, options?: { required_checks?: unknown[] }) => {
+const browserRun = async (command: unknown) => {
   if (!localBrowserEnabled) {
     localBrowserDisabled("flo.browser.run");
   }
   return normalizeBrowserRunResponse(
-    await localBrowserRequest("/v1/commands", {
-      command,
-      required_checks: Array.isArray(options?.required_checks) ? options.required_checks : [],
-    }),
+    await localBrowserRequest("/v1/commands", { command }),
   );
 };
 
-const browserStartRequestCapture = async (matchers: unknown[], options?: { required_checks?: unknown[] }) => {
+const browserStartRequestCapture = async (matchers: unknown[]) => {
   if (!localBrowserEnabled) {
     localBrowserDisabled("flo.browser.startRequestCapture");
   }
   return normalizeBrowserValueResponse(
     await localBrowserRequest("/v1/commands", {
       command: { type: "start_request_capture", matchers },
-      required_checks: Array.isArray(options?.required_checks) ? options.required_checks : [],
     }),
   );
 };
 
-const browserCollectCapturedRequests = async (
-  captureId: string,
-  options?: { required_checks?: unknown[]; timeout_ms?: number },
-) => {
+const browserCollectCapturedRequests = async (captureId: string, options?: { timeout_ms?: number }) => {
   if (!localBrowserEnabled) {
     localBrowserDisabled("flo.browser.collectCapturedRequests");
   }
@@ -683,19 +676,17 @@ const browserCollectCapturedRequests = async (
         capture_id: captureId,
         timeout_ms: timeoutMs,
       },
-      required_checks: Array.isArray(options?.required_checks) ? options.required_checks : [],
     }),
   );
 };
 
-const browserStopRequestCapture = async (captureId: string, options?: { required_checks?: unknown[] }) => {
+const browserStopRequestCapture = async (captureId: string) => {
   if (!localBrowserEnabled) {
     localBrowserDisabled("flo.browser.stopRequestCapture");
   }
   return normalizeBrowserValueResponse(
     await localBrowserRequest("/v1/commands", {
       command: { type: "stop_request_capture", capture_id: captureId },
-      required_checks: Array.isArray(options?.required_checks) ? options.required_checks : [],
     }),
   );
 };
@@ -1622,6 +1613,7 @@ globalThis.__flo_runtime = {
     },
     spawnChildren: async (_request: unknown) => unsupported("flo.task.spawnChildren"),
     waitForBatch: async () => unsupported("flo.task.waitForBatch"),
+    waitForUserMessage: async () => unsupported("flo.task.waitForUserMessage"),
     getBatchResults: async () => unsupported("flo.task.getBatchResults"),
   },
   dispatcher: {

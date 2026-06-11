@@ -1057,15 +1057,11 @@ export function createPlaywrightWorker(options = {}) {
           const response = await withSessionLock(identity.key, async () =>
             withBrowserHandling(async () => {
               const session = await ensureSession(identity);
-              const result = await executeCommand(session, body.command);
-              const actionNeeded = await evaluateRequiredChecks(
-                session,
-                body.required_checks,
-                req,
-              );
+              const actionNeeded = await evaluateRequiredChecks(session, body.required_checks, req);
               if (actionNeeded) {
                 return actionNeeded;
               }
+              const result = await executeCommand(session, body.command);
               clearSessionHandoff(session);
               return { status: "ok", result };
             }),

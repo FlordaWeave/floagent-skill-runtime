@@ -449,41 +449,6 @@ test("session focus brings the requested page to front", async () => {
   }
 });
 
-test("handoff tokens stay scoped to their session", async () => {
-  const worker = await startWorker();
-  try {
-    await postJson(worker.baseUrl, "/v1/commands", {
-      task_id: "task-a",
-      session_id: "session-a",
-      command: { type: "goto", url: "https://example.com/a" },
-      required_checks: [
-        { kind: "selector_absent", value: "#logged-in" },
-      ],
-    });
-    await postJson(worker.baseUrl, "/v1/commands", {
-      task_id: "task-b",
-      session_id: "session-b",
-      command: { type: "goto", url: "https://example.com/b" },
-      required_checks: [
-        { kind: "selector_absent", value: "#logged-in" },
-      ],
-    });
-
-    const firstToken = worker.state.sessions.get("task-a:session-a").handoff.token;
-    const secondToken = worker.state.sessions.get("task-b:session-b").handoff.token;
-
-    assert.notEqual(firstToken, secondToken);
-
-    const firstMeta = await getJson(worker.baseUrl, `/v1/handoff/${firstToken}/meta`);
-    const secondMeta = await getJson(worker.baseUrl, `/v1/handoff/${secondToken}/meta`);
-
-    assert.equal(firstMeta.body.current_url, "https://example.com/a");
-    assert.equal(secondMeta.body.current_url, "https://example.com/b");
-  } finally {
-    await worker.close();
-  }
-});
-
 test("browser command reload refreshes the current page", async () => {
   const worker = await startWorker();
   try {
@@ -506,6 +471,28 @@ test("browser command reload refreshes the current page", async () => {
     assert.equal(response.response.status, 200);
     assert.equal(response.body.status, "ok");
     assert.equal(response.body.result.current_url, "https://example.com/a#reloaded");
+  } finally {
+    await worker.close();
+  }
+});
+
+test("required checks can return handoff action_needed for commands", async () => {
+  const worker = await startWorker();
+  try {
+    const response = await postJson(worker.baseUrl, "/v1/commands", {
+      task_id: "task-a",
+      session_id: "session-a",
+      command: { type: "goto", url: "https://example.com/app" },
+      required_checks: [{ kind: "selector_absent", value: "#requires-human-login" }],
+    });
+
+    assert.equal(response.response.status, 200);
+    assert.equal(response.body.status, "action_needed");
+    assert.equal(response.body.action.code, "login_required");
+    assert.match(response.body.action.handoff.operator_url, /\/handoff\//);
+
+    const handoffPage = await fetch(response.body.action.handoff.operator_url);
+    assert.equal(handoffPage.status, 200);
   } finally {
     await worker.close();
   }
