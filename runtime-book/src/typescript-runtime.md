@@ -134,6 +134,6 @@ The Node preload shim supports:
 For `flo.task.getProfile()`, the shim uses `local-node-profile` by default and supports
 `FLO_LOCAL_PROFILE_ID` plus `FLO_LOCAL_PROFILE_DISPLAY_NAME` overrides.
 
-Other runtime-bound APIs, including `flo.dispatcher.*`, intentionally fail in the local shim so tests do not accidentally depend on unsupported local behavior.
+Other runtime-bound APIs, including `flo.dispatcher.*` and `flo.task.waitForUserMessage(...)`, intentionally fail in the local shim so tests do not accidentally depend on unsupported local behavior.
 
 Next: [Nested Tool Calls](nested-tool-calls.md)

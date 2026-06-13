@@ -56,6 +56,21 @@ In the local Node preload shim, `profile_id` defaults to `local-node-profile` an
 overridden with `FLO_LOCAL_PROFILE_ID`. `display_name` can be set with
 `FLO_LOCAL_PROFILE_DISPLAY_NAME`.
 
+## `flo.task.waitForUserMessage(...)`
+
+Suspend the current task until a later user message resumes it:
+
+```ts
+const response = await flo.task.waitForUserMessage({
+  user_message: "Please finish the login, then reply done.",
+  resume_payload: { step: "login" },
+});
+```
+
+The public API name is `waitForUserMessage`. Legacy internal payloads may mention `wait_for_human`, but authored tools should use `flo.task.waitForUserMessage(...)`.
+
+See [Wait For User Messages](wait-for-user-message.md) for resume behavior and checkpointing details.
+
 ## `flo.task.limits`
 
 Inspect runtime task-orchestration limits:
