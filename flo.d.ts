@@ -381,6 +381,24 @@ declare module "flo:runtime" {
     children: FloSpawnChildSpec[];
   }
 
+  interface FloRunSubagentRequest {
+    worker_kind: FloWorkerKind;
+    title: string;
+    objective: string;
+    input: FloJsonValue;
+    selected_skill_ids?: string[];
+  }
+
+  interface FloRunSubagentResponse<TOutput = FloJsonValue> {
+    subagent_task_id: string;
+    worker_kind: FloWorkerKind;
+    status: "completed" | "failed" | "suspended";
+    output: TOutput;
+    output_text: string;
+    error?: FloStructuredError;
+    suspension?: FloJsonValue;
+  }
+
   interface FloChildBatchChild {
     child_task_id: string;
     worker_kind: FloWorkerKind;
@@ -1416,6 +1434,10 @@ declare module "flo:runtime" {
       getContext<TContext = FloTaskContext>(): Promise<TContext>;
       /** Append a structured event to the current task timeline. */
       emitEvent(request: FloTaskEmitEventRequest): Promise<void>;
+      /** Run an in-process subagent worker and await its result without durable child-task suspension. */
+      runSubagent<TOutput = FloJsonValue>(
+        request: FloRunSubagentRequest,
+      ): Promise<FloRunSubagentResponse<TOutput>>;
       /** Spawn durable child tasks for specialized parallel work. */
       spawnChildren(request: FloSpawnChildrenRequest): Promise<FloSpawnChildrenResponse>;
       /**

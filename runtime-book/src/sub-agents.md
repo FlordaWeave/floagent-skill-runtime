@@ -1,6 +1,46 @@
 # Sub Agents
 
-Use child-task helpers when a script needs durable parallel work for specialized subtasks.
+Use subagent helpers when a script needs specialized worker-style reasoning.
+
+Use `runSubagent(...)` for lightweight in-process work. Use durable child-task helpers when work must survive parent task suspension, process restarts, or longer-running parallel execution.
+
+## Run A Lightweight Subagent
+
+Run one in-process subagent and await its result without suspending the parent task:
+
+```ts
+const result = await flo.task.runSubagent({
+  worker_kind: "classifier",
+  title: "Classify request",
+  objective: "Classify the request into one supported category",
+  input: { text: input.text },
+  selected_skill_ids: ["skill.request-classifier"],
+});
+
+if (result.status === "completed") {
+  return result.output;
+}
+```
+
+`runSubagent(...)` creates no durable child task or child batch. If the parent script invocation fails or `agentd` exits while the subagent is running, the subagent work is lost with that invocation.
+
+Each request defines:
+
+- `worker_kind`
+- `title`
+- `objective`
+- `input`
+- optional `selected_skill_ids`
+
+Each response includes:
+
+- `subagent_task_id`
+- `worker_kind`
+- `status`
+- `output`
+- `output_text`
+- optional `error`
+- optional `suspension`
 
 ## Spawn Children
 
@@ -120,7 +160,8 @@ Each child result includes:
 
 ## Authoring Guidance
 
-- Use child tasks for durable parallelism, not for lightweight local branching.
+- Use `runSubagent(...)` for lightweight local branching.
+- Use child tasks for durable parallelism.
 - Persist checkpoints with [Task State](task-tool-state.md) before waiting.
 - Keep child inputs compact and JSON-serializable.
 - Handle partial failures explicitly; one child can fail while others succeed.

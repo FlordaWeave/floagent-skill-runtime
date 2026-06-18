@@ -641,12 +641,15 @@ const normalizeBrowserValueResponse = (response: any) => {
   return normalized;
 };
 
-const browserRun = async (command: unknown) => {
+const browserRun = async (command: unknown, options?: unknown) => {
   if (!localBrowserEnabled) {
     localBrowserDisabled("flo.browser.run");
   }
   return normalizeBrowserRunResponse(
-    await localBrowserRequest("/v1/commands", { command }),
+    await localBrowserRequest("/v1/commands", {
+      ...(options && typeof options === "object" && !Array.isArray(options) ? options : {}),
+      command,
+    }),
   );
 };
 
@@ -1611,6 +1614,7 @@ globalThis.__flo_runtime = {
     emitEvent: async (request: unknown) => {
       console.log(request);
     },
+    runSubagent: async (_request: unknown) => unsupported("flo.task.runSubagent"),
     spawnChildren: async (_request: unknown) => unsupported("flo.task.spawnChildren"),
     waitForBatch: async () => unsupported("flo.task.waitForBatch"),
     waitForUserMessage: async () => unsupported("flo.task.waitForUserMessage"),
