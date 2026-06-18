@@ -635,6 +635,8 @@ declare module "flo:runtime" {
     | "media_push_vfs"
     /** Upload base64-encoded bytes to media storage. Example input: {"base64_data":"aGVsbG8=","media_type":"text/plain","filename":"hello.txt","ttl_seconds":3600}. */
     | "media_push_base64"
+    /** Return a fresh presigned download URL for previously uploaded media. Use this when a notification body needs a direct media link. Example input: {"media_id":"11111111-1111-1111-1111-111111111111"}. */
+    | "get_media_download_url"
     /** Send a notification through an admin-configured notification channel. Provide exactly one of channel_name or channel_id. Prefer channel_name in authored skills; use channel_id for stricter programmatic callers. Supported msgtype values are text, markdown, markdown_v2, image, and file. */
     | "send_notification"
     /** Send previously uploaded media back to the current channel as a file attachment when it is smaller than 262144 bytes. Larger media returns a presigned download URL instead. Call media_push_vfs or media_push_base64 first, then pass the returned media_id here. Example input: {"media_id":"11111111-1111-1111-1111-111111111111","filename":"report.csv"}. */
@@ -1162,6 +1164,21 @@ declare module "flo:runtime" {
     size_bytes: number;
   };
 
+  /** Input accepted by the `get_media_download_url` runtime tool. */
+  type FloGetMediaDownloadUrlInput = {
+    media_id: string;
+  };
+
+  /** Output returned by the `get_media_download_url` runtime tool. */
+  type FloGetMediaDownloadUrlOutput = {
+    download_url: string;
+    expires_at: string;
+    filename?: string;
+    media_id: string;
+    media_type: string;
+    size_bytes: number;
+  };
+
   /** Input accepted by the `send_notification` runtime tool. */
   type FloSendNotificationInput = {
     channel_id?: string;
@@ -1304,6 +1321,8 @@ declare module "flo:runtime" {
     "media_push_vfs": FloMediaPushVfsInput;
     /** Upload base64-encoded bytes to media storage. Example input: {"base64_data":"aGVsbG8=","media_type":"text/plain","filename":"hello.txt","ttl_seconds":3600}. */
     "media_push_base64": FloMediaPushBase64Input;
+    /** Return a fresh presigned download URL for previously uploaded media. Use this when a notification body needs a direct media link. Example input: {"media_id":"11111111-1111-1111-1111-111111111111"}. */
+    "get_media_download_url": FloGetMediaDownloadUrlInput;
     /** Send a notification through an admin-configured notification channel. Provide exactly one of channel_name or channel_id. Prefer channel_name in authored skills; use channel_id for stricter programmatic callers. Supported msgtype values are text, markdown, markdown_v2, image, and file. */
     "send_notification": FloSendNotificationInput;
     /** Send previously uploaded media back to the current channel as a file attachment when it is smaller than 262144 bytes. Larger media returns a presigned download URL instead. Call media_push_vfs or media_push_base64 first, then pass the returned media_id here. Example input: {"media_id":"11111111-1111-1111-1111-111111111111","filename":"report.csv"}. */
@@ -1369,6 +1388,8 @@ declare module "flo:runtime" {
     "media_push_vfs": FloMediaPushVfsOutput;
     /** Output returned by the `media_push_base64` runtime tool. */
     "media_push_base64": FloMediaPushBase64Output;
+    /** Output returned by the `get_media_download_url` runtime tool. */
+    "get_media_download_url": FloGetMediaDownloadUrlOutput;
     /** Output returned by the `send_notification` runtime tool. */
     "send_notification": FloSendNotificationOutput;
     /** Output returned by the `send_media_attachment` runtime tool. */

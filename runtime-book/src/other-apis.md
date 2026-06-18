@@ -110,6 +110,7 @@ const checkpoint = await flo.task.getState<{ phase?: string }>({
 - `media_fetch`
 - `media_push_vfs`
 - `media_push_base64`
+- `get_media_download_url`
 - `send_notification`
 - `send_media_attachment`
 - `activate_skill`
