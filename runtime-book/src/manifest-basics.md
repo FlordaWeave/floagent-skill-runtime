@@ -249,6 +249,10 @@ Required fields:
 
 - `execution.preamble`
 
+Optional fields:
+
+- `system_prompt_resolver`
+
 Example:
 
 ```yaml
@@ -256,6 +260,11 @@ execution:
   preamble: |
     You are a slot-scoped runtime.
     Keep responses concrete and concise.
+
+system_prompt_resolver:
+  script_file: prompts/resolve-system-prompt.mts
+  entrypoint: resolveSystemPrompt
+  timeout_ms: 3000
 ```
 
 Field behavior:
@@ -264,13 +273,39 @@ Field behavior:
   - required non-empty string
   - prepended to the runtime's configured execution-stage prompt
   - if the runtime execution prompt is empty, the preamble is used by itself
+- `system_prompt_resolver`
+  - optional dynamic session prompt script
+  - `script_file` is resolved relative to the `*.prompts.yaml` file
+  - `script_file` must be a relative `.mts` or `.mjs` path and cannot use `..`
+  - `entrypoint` must name the exported resolver function
+  - `timeout_ms` must be greater than zero
+  - resolver failures fail the task with `system_prompt_resolution_failed`
+
+The resolver receives the current `session_id` and sanitized profile fields:
+
+```json
+{
+  "session_id": "wecom:group:chat-1:alice",
+  "profile": {
+    "profile_id": "profile-1",
+    "profile_kind": "user",
+    "permissions": ["returns.manage"],
+    "display_name": "Alice"
+  }
+}
+```
+
+`display_name` is omitted when unavailable. The resolver may return a string, `null`,
+or `undefined`. `null`, `undefined`, and blank strings mean no dynamic prompt. A
+non-blank string is appended after the normal stage preamble for gate and execution
+stages only; task-summary and context-summary prompts do not receive it.
 
 Authoring rules:
 
 - use this manifest for bundle-wide execution guidance that should apply regardless of which skills are selected
 - keep it focused on durable execution behavior, not one-off task content
 - unknown top-level fields are rejected
-- the current manifest shape is intentionally narrow; today only `execution.preamble` is supported
+- resolver scripts are runtime prompt infrastructure, not user-visible tools
 
 ## Schedule Manifest Shape
 
