@@ -76,6 +76,8 @@ Each child defines:
 
 Omit `selected_skill_ids` to keep the child task's selected skill list empty.
 
+Creating a batch does not suspend the parent. Script-created batches begin as detached work; the parent establishes a durable dependency only when it calls `flo.task.waitForBatch(...)`.
+
 ## Wait For Completion
 
 Use `flo.task.waitForBatch(...)` when the parent should suspend until all child tasks are terminal:
@@ -157,6 +159,8 @@ Each child result includes:
 - `output`
 - optional `error`
 - optional `completed_at`
+
+A child that fails with a timeout error is reported with `status: "timeout"`. Other terminal failures use `status: "failed"`.
 
 ## Authoring Guidance
 
