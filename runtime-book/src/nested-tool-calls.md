@@ -2,7 +2,8 @@
 
 Use `flo.callTool(...)` to call another runtime tool from your script.
 
-The supported `agentd` slash commands are `/call` and `/web`.
+The supported `agentd` slash commands are `/new`, `/call`, and `/web`. Bare `/new` starts a fresh
+task without model stages, while `/new <request>` runs normally in a fresh task.
 
 Nested calls are still scoped by the selected skill set. A script can call:
 

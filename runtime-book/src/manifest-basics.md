@@ -49,7 +49,7 @@ timeout_ms: 30000
 
 Tool field behavior:
 
-- supported `agentd` slash commands are `/call` and `/web`
+- supported `agentd` slash commands are `/new`, `/call`, and `/web`; bare `/new` starts a fresh task without model stages, while `/new <request>` runs normally in a fresh task
 
 - `direct_call`
   - defaults to `false`
