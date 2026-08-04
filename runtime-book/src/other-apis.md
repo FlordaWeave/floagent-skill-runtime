@@ -111,6 +111,7 @@ const checkpoint = await flo.task.getState<{ phase?: string }>({
 - `media_push_vfs`
 - `media_push_base64`
 - `get_media_download_url`
+- `read_tool_result_artifact`
 - `send_notification`
 - `send_media_attachment`
 - `activate_skill`
@@ -118,6 +119,8 @@ const checkpoint = await flo.task.getState<{ phase?: string }>({
 - `import_skill_asset`
 
 When a built-in already matches the file or media operation you need, prefer it over reimplementing the same behavior in script code.
+
+`read_tool_result_artifact` reads a bounded selection from a large tool result that the current task already references. Pass `artifact_id` and optionally `json_pointer`, `offset`, and `limit`; `limit` is a serialized-data byte budget capped at 16 KiB. The tool never returns the complete artifact in one call, and artifact ids from other tasks are not readable.
 
 ## Skill Resources And Assets
 

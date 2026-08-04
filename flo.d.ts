@@ -637,6 +637,8 @@ declare module "flo:runtime" {
     | "media_push_base64"
     /** Return a fresh presigned download URL for previously uploaded media. Use this when a notification body needs a direct media link. Example input: {"media_id":"11111111-1111-1111-1111-111111111111"}. */
     | "get_media_download_url"
+    /** Read a bounded portion of a large tool-result artifact referenced by the current task. Use json_pointer for a JSON subtree, or offset and limit for text/array pagination. The complete artifact is never returned in one call. */
+    | "read_tool_result_artifact"
     /** Send a notification through an admin-configured notification channel. Provide exactly one of channel_name or channel_id. Prefer channel_name in authored skills; use channel_id for stricter programmatic callers. Supported msgtype values are text, markdown, markdown_v2, image, and file. */
     | "send_notification"
     /** Send previously uploaded media back to the current channel as a file attachment when it is smaller than 262144 bytes. Larger media returns a presigned download URL instead. Call media_push_vfs or media_push_base64 first, then pass the returned media_id here. Example input: {"media_id":"11111111-1111-1111-1111-111111111111","filename":"report.csv"}. */
@@ -1179,6 +1181,28 @@ declare module "flo:runtime" {
     size_bytes: number;
   };
 
+  /** Input accepted by the `read_tool_result_artifact` runtime tool. */
+  type FloReadToolResultArtifactInput = {
+    artifact_id: string;
+    json_pointer?: string;
+    limit?: number;
+    offset?: number;
+  };
+
+  /** Output returned by the `read_tool_result_artifact` runtime tool. */
+  type FloReadToolResultArtifactOutput = {
+    artifact_id: string;
+    content_type: string;
+    data: FloJsonValue;
+    has_more: boolean;
+    json_pointer?: string;
+    offset: number;
+    returned_bytes?: number;
+    returned_items?: number;
+    total_bytes?: number;
+    total_items?: number;
+  };
+
   /** Input accepted by the `send_notification` runtime tool. */
   type FloSendNotificationInput = {
     channel_id?: string;
@@ -1323,6 +1347,8 @@ declare module "flo:runtime" {
     "media_push_base64": FloMediaPushBase64Input;
     /** Return a fresh presigned download URL for previously uploaded media. Use this when a notification body needs a direct media link. Example input: {"media_id":"11111111-1111-1111-1111-111111111111"}. */
     "get_media_download_url": FloGetMediaDownloadUrlInput;
+    /** Read a bounded portion of a large tool-result artifact referenced by the current task. Use json_pointer for a JSON subtree, or offset and limit for text/array pagination. The complete artifact is never returned in one call. */
+    "read_tool_result_artifact": FloReadToolResultArtifactInput;
     /** Send a notification through an admin-configured notification channel. Provide exactly one of channel_name or channel_id. Prefer channel_name in authored skills; use channel_id for stricter programmatic callers. Supported msgtype values are text, markdown, markdown_v2, image, and file. */
     "send_notification": FloSendNotificationInput;
     /** Send previously uploaded media back to the current channel as a file attachment when it is smaller than 262144 bytes. Larger media returns a presigned download URL instead. Call media_push_vfs or media_push_base64 first, then pass the returned media_id here. Example input: {"media_id":"11111111-1111-1111-1111-111111111111","filename":"report.csv"}. */
@@ -1390,6 +1416,8 @@ declare module "flo:runtime" {
     "media_push_base64": FloMediaPushBase64Output;
     /** Output returned by the `get_media_download_url` runtime tool. */
     "get_media_download_url": FloGetMediaDownloadUrlOutput;
+    /** Output returned by the `read_tool_result_artifact` runtime tool. */
+    "read_tool_result_artifact": FloReadToolResultArtifactOutput;
     /** Output returned by the `send_notification` runtime tool. */
     "send_notification": FloSendNotificationOutput;
     /** Output returned by the `send_media_attachment` runtime tool. */
