@@ -1581,6 +1581,8 @@ const getRuntimeConfig = async (key: unknown): Promise<string | undefined> => {
     : undefined;
 };
 
+let activeLocalTaskStep = false;
+
 globalThis.__flo_runtime = {
   sleep: async (ms: number) =>
     new Promise<void>((resolve) => {
@@ -1615,6 +1617,37 @@ globalThis.__flo_runtime = {
       console.log(request);
     },
     runSubagent: async (_request: unknown) => unsupported("flo.task.runSubagent"),
+    spawn: async (_request: unknown) => unsupported("flo.task.spawn"),
+    waitForDependencies: async (_request: unknown) =>
+      unsupported("flo.task.waitForDependencies"),
+    step: async (
+      options: { key?: string; version?: string; input?: unknown },
+      callback: (context: {
+        input: unknown;
+        attempt: number;
+        idempotency_key: string;
+      }) => unknown | Promise<unknown>,
+    ) => {
+      if (typeof callback !== "function") {
+        throw new TypeError("flo.task.step requires a callback function");
+      }
+      if (activeLocalTaskStep) {
+        throw new Error("flo.task.step callbacks cannot be nested or run concurrently");
+      }
+      const key = options?.key ?? "step";
+      const version = options?.version ?? "1";
+      activeLocalTaskStep = true;
+      try {
+        return await callback({
+          input: options?.input,
+          attempt: 1,
+          idempotency_key: `local:${defaultLocalBrowserTaskId}:${key}:${version}:attempt:1`,
+        });
+      } finally {
+        activeLocalTaskStep = false;
+      }
+    },
+    cancel: async (_request: unknown) => unsupported("flo.task.cancel"),
     spawnChildren: async (_request: unknown) => unsupported("flo.task.spawnChildren"),
     waitForBatch: async () => unsupported("flo.task.waitForBatch"),
     waitForUserMessage: async () => unsupported("flo.task.waitForUserMessage"),

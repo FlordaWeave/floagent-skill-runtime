@@ -14,4 +14,5 @@
 - [Dispatcher](dispatcher.md)
 - [Browser Automation](browser-automation.md)
 - [Sub Agents](sub-agents.md)
+- [Durable Task DAGs And Named Steps](task-dags.md)
 - [Other APIs](other-apis.md)

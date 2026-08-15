@@ -421,6 +421,90 @@ declare module "flo:runtime" {
     event: unknown;
   }
 
+  type FloTaskDependencyCondition = "all" | "any";
+  type FloTaskDependencyFailurePolicy = "require_success" | "all_settled";
+  type FloTaskStatus =
+    | "queued"
+    | "blocked"
+    | "running"
+    | "suspended"
+    | "succeeded"
+    | "failed"
+    | "cancelled";
+
+  interface FloTaskDependency {
+    task_id: string;
+    alias: string;
+  }
+
+  interface FloTaskSpawnRequest<TInput = FloJsonValue> {
+    key: string;
+    title: string;
+    objective: string;
+    input: TInput;
+    input_schema: FloJsonValue;
+    output_schema: FloJsonValue;
+    dependencies?: FloTaskDependency[];
+    dependency_condition?: FloTaskDependencyCondition;
+    failure_policy?: FloTaskDependencyFailurePolicy;
+    selected_skill_ids?: string[];
+    allowed_tools?: string[];
+    max_turns?: number;
+  }
+
+  interface FloTaskHandle<TOutput = FloJsonValue> {
+    task_id: string;
+    key: string;
+    status: FloTaskStatus;
+    /** Type-only marker for the task's validated structured output. */
+    readonly __output?: TOutput;
+  }
+
+  interface FloWaitForDependenciesRequest {
+    key: string;
+    dependencies: FloTaskDependency[];
+    condition?: FloTaskDependencyCondition;
+    failure_policy?: FloTaskDependencyFailurePolicy;
+  }
+
+  interface FloDependencyResult<TOutput = FloJsonValue> {
+    task_id: string;
+    alias: string;
+    status: FloTaskStatus;
+    output?: TOutput;
+    error?: FloStructuredError;
+    completed_at?: string;
+  }
+
+  type FloDependencyResults = Record<string, FloDependencyResult>;
+
+  interface FloTaskStepRetry {
+    max_attempts: number;
+    initial_backoff_ms: number;
+    multiplier: number;
+    max_backoff_ms: number;
+  }
+
+  interface FloTaskStepOptions<TInput = FloJsonValue> {
+    key: string;
+    version: string;
+    input: TInput;
+    input_schema?: FloJsonValue;
+    output_schema?: FloJsonValue;
+    retry?: FloTaskStepRetry;
+  }
+
+  interface FloTaskStepContext<TInput = FloJsonValue> {
+    input: TInput;
+    attempt: number;
+    idempotency_key: string;
+  }
+
+  interface FloCancelTaskResponse {
+    task: FloJsonValue;
+    cancelled_task_ids: string[];
+  }
+
   interface FloGetBatchResultsRequest {
     batch_id: string;
   }
@@ -432,7 +516,7 @@ declare module "flo:runtime" {
   interface FloChildResult {
     child_task_id: string;
     worker_kind: FloWorkerKind;
-    status: "completed" | "failed" | "timeout" | "running" | "queued" | "suspended";
+    status: "completed" | "failed" | "timeout" | "running" | "queued" | "blocked" | "suspended" | "cancelled";
     output: FloJsonValue;
     error?: string;
     completed_at?: string;
@@ -1487,6 +1571,27 @@ declare module "flo:runtime" {
       runSubagent<TOutput = FloJsonValue>(
         request: FloRunSubagentRequest,
       ): Promise<FloRunSubagentResponse<TOutput>>;
+      /** Spawn an idempotently keyed durable task node with validated input/output contracts. */
+      spawn<TInput = FloJsonValue, TOutput = FloJsonValue>(
+        request: FloTaskSpawnRequest<TInput>,
+      ): Promise<FloTaskHandle<TOutput>>;
+      /**
+       * Join durable task dependencies. A pending join ends this invocation; on resolution the
+       * script starts again at its entrypoint and this call returns the frozen aliased results.
+       */
+      waitForDependencies(
+        request: FloWaitForDependenciesRequest,
+      ): Promise<FloDependencyResults>;
+      /**
+       * Memoize one sequential callback step. Completed callbacks are skipped on re-entry.
+       * The callback may be re-executed after a crash with the same idempotency key.
+       */
+      step<TInput = FloJsonValue, TOutput = FloJsonValue>(
+        options: FloTaskStepOptions<TInput>,
+        callback: (context: FloTaskStepContext<TInput>) => Promise<TOutput> | TOutput,
+      ): Promise<TOutput>;
+      /** Cancel a task and only its owned descendants. */
+      cancel(request: { task_id: string }): Promise<FloCancelTaskResponse>;
       /** Spawn durable child tasks for specialized parallel work. */
       spawnChildren(request: FloSpawnChildrenRequest): Promise<FloSpawnChildrenResponse>;
       /**

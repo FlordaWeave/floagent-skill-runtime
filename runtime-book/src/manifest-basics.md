@@ -328,6 +328,7 @@ Optional fields:
 - `selected_skill_ids`
 - `skip_skill_selection`
 - `enabled`
+- `concurrency_policy`
 - `cron_expression`
 
 Example:
@@ -346,6 +347,7 @@ trigger:
       minute: 0
 timezone: America/Toronto
 enabled: true
+concurrency_policy: forbid
 ```
 
 Behavior:
@@ -355,6 +357,24 @@ Behavior:
 - If the alias does not exist, Flo auto-creates a normal non-admin user profile and records the alias.
 - If a schedule manifest is removed, Flo deletes the managed schedule but does not delete the profile or alias it created.
 - Managed schedules are read-only in the admin UI except for `Run now`.
+- `concurrency_policy` defaults to `allow` for compatibility. Use `forbid` to skip a trigger while an earlier run is queued, blocked, running, or suspended.
+- Succeeded, failed, and cancelled runs are terminal and do not prevent the next trigger.
+
+For a non-overlapping five-minute email poller:
+
+```yaml
+schedule_id: email_analysis
+profile_channel: wecom
+profile_external_user_id: alice
+user_message: Analyze new emails.
+trigger:
+  kind: recurring
+  minutes_interval: 5
+timezone: America/Toronto
+concurrency_policy: forbid
+```
+
+If an earlier email-analysis run is still active at the next five-minute tick, Flo records the tick as triggered, skips dispatch, and advances the regular cadence. `Run now` applies the same policy but does not change the cadence when it is skipped.
 
 ## Schedule Trigger Shape
 
